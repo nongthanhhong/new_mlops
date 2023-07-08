@@ -1,0 +1,25 @@
+{
+    "meta_data": {
+        "model_name": "xgb"
+
+    },
+    "train": {
+        "eval_metric" : "auc",
+        "verbose": 50, 
+        "early_stopping_rounds": 100
+    },
+    "params": {
+        "n_estimators" : 5000,
+        "scale_pos_weight": 2.45,
+        "max_depth" : 10,
+        "learning_rate" : 0.02,
+        "subsample" : 0.8,
+        "colsample_bytree" : 0.7,
+        "colsample_bylevel" : 0.5,
+        "colsample_bynode" : 0.5,
+
+        "missing" : -1,
+        "objective": "binary:logistic"
+    }
+    
+}

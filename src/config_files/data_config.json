@@ -1,0 +1,10 @@
+{
+    "missing_values": {
+        "method": "fill" , 
+        "fill_value": "mean"
+    },
+    "scale_data": {
+        "method": "standard"
+    }
+    
+}

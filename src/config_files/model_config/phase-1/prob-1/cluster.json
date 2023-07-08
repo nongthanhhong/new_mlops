@@ -1,0 +1,21 @@
+{
+    "algorithm":{
+        "name":"k-means"
+
+    },
+    "mini":{
+        "init": "k-means++",
+        "max_no_improvement": 1000,
+        "n_clusters": 33333,
+        "batch_size": 100000,
+        "random_state": 69
+    },
+    "k_means":{
+        "n_clusters": 100000
+    },
+    "dbscan":{
+        "eps": 3,
+        "min_samples": 10
+    }
+    
+}
