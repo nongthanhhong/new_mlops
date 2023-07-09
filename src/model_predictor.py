@@ -74,7 +74,7 @@ class ModelPredictor:
             '''
             prediction_list = prediction.squeeze().tolist()
             prediction = [self.inverse_label_mapping[label] for label in prediction_list]
-            prediction = np.array(prediction, dtype=str).reshape(-1, 1)
+            prediction = np.array(prediction, dtype=str)
 
         is_drifted = self.detect_drift(feature_df)
 
