@@ -5,9 +5,9 @@ from utils import *
 
 
 class ProblemConst:
-    PHASE = "phase-1"
+    PHASE = "phase-2"
     PROB1 = "prob-1"
-    PHASE = "phase-1"
+    PHASE = "phase-2"
     PROB2 = "prob-2"
 
 
