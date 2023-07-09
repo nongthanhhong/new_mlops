@@ -170,7 +170,7 @@ def generate_id(string):
     # Return the first 8 characters of the hexadecimal representation
     return hex_dig[:8]
 
-def deploy_data_loader(prob_config: ProblemConfig, raw_df: pd.DataFrame):\
+def deploy_data_loader(prob_config: ProblemConfig, raw_df: pd.DataFrame):
 
     """
     Process data for deploy phase
