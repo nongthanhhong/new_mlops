@@ -86,7 +86,7 @@ class ModelPredictor:
 
 
 class PredictorApi:
-    def __init__(self, predictor_1: ModelPredictor, predictor_2: ModelPredictor):
+    def __init__(self, predictor_1: ModelPredictor, predictor_2: ModelPredictor, phase_id:str):
         self.predictor_1 = predictor_1
         self.predictor_2 = predictor_2
         self.app = FastAPI()
@@ -95,14 +95,14 @@ class PredictorApi:
         async def root():
             return {"message": "hello"}
 
-        @self.app.post("/phase-1/prob-1/predict")
+        @self.app.post(f"/{phase_id}/prob-1/predict")
         async def predict(data: Data, request: Request):
             self._log_request(request)
             response = self.predictor_1.predict(data)
             self._log_response(response)
             return response
 
-        @self.app.post("/phase-1/prob-2/predict")
+        @self.app.post(f"/{phase_id}/prob-2/predict")
         async def predict(data: Data, request: Request):
             self._log_request(request)
             response = self.predictor_2.predict(data)
@@ -147,5 +147,5 @@ if __name__ == "__main__":
     predictor_1 = ModelPredictor(config_file_path=prob_1_config_path)
     predictor_2 = ModelPredictor(config_file_path=prob_2_config_path)
 
-    api = PredictorApi(predictor_1, predictor_2)
+    api = PredictorApi(predictor_1, predictor_2, phase_id = ProblemConst.PHASE)
     api.run(port=args.port)
