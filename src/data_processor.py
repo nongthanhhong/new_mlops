@@ -183,7 +183,10 @@ def preprocess_data(prob_config: ProblemConfig, data, mode='train'):
         with open(save_path + "types.json", 'r') as f:
             dtype = json.load(f)
 
-        columns = data.drop([prob_config.target_col], axis=1).columns
+        if mode == 'deploy':
+            columns = data.columns
+        else:
+            columns = data.drop([prob_config.target_col], axis=1).columns
         for column in columns:
             if column in dtype.keys():
               data[column] = pd.to_numeric(data[column], errors='coerce')
