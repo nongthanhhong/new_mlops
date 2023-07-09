@@ -45,6 +45,8 @@ predictor_curl:
 
 # using nginx for load balancing
 nginx_up:
+	export MLFLOW_TRACKING_URI=http://localhost:5000
+	
 	bash platform/nginx_deploy.sh run_nginx \
 							/src/config_files/model-1.yaml \
 							/src/config_files/model-2.yaml \

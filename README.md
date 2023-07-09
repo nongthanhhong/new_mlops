@@ -83,6 +83,12 @@
         
         **Note** Just use one if it, if want to use another, run ```make teardown``` then 
         - Not using nginx for load balancing
+        - recheck class ProblemConst for ensure phase and prob id.
+
+        ```bash
+        export MLFLOW_TRACKING_URI=http://localhost:5000
+        ```
+
         ```bash
         make mlflow_restart
         make predictor_up

@@ -15,7 +15,7 @@ from pydantic import BaseModel
 from fastapi import FastAPI, Request
 from utils import AppConfig, AppPath
 from data_loader import deploy_data_loader
-from problem_config import ProblemConst, create_prob_config, load_feature_configs_dict
+from problem_config import ProblemConst, create_prob_config
 
 PREDICTOR_API_PORT = 8000
 

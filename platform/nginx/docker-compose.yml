@@ -14,11 +14,9 @@ services:
     image: ${IMAGE_NAME}:${IMAGE_TAG}
     restart: on-failure
     volumes:
-      - ../../data/raw_data:/sample_solution/data/raw_data
-      - ../../data/train_data:/sample_solution/data/train_data
-      - ../../data/model_config:/sample_solution/data/model_config
-      - ../../data/captured_data:/sample_solution/data/captured_data
-      - ../../data/preprocessed_data:/sample_solution/data/preprocessed_data
+      - ../../data_warehouse/raw_data:/sample_solution/data_warehouse/raw_data
+      - ../../data_warehouse/captured_data:/sample_solution/data_warehouse/captured_data
+      - ../../data_warehouse/processed_data:/sample_solution/data_warehouse/processed_data
 
     environment:
       MODEL_1_CONFIG_PATH: ${MODEL_1_CONFIG_PATH}
@@ -38,11 +36,9 @@ services:
     image: ${IMAGE_NAME}:${IMAGE_TAG}
     restart: on-failure
     volumes:
-      - ../../data/raw_data:/sample_solution/data/raw_data
-      - ../../data/train_data:/sample_solution/data/train_data
-      - ../../data/model_config:/sample_solution/data/model_config
-      - ../../data/captured_data:/sample_solution/data/captured_data
-      - ../../data/preprocessed_data:/sample_solution/data/preprocessed_data
+      - ../../data_warehouse/raw_data:/sample_solution/data_warehouse/raw_data
+      - ../../data_warehouse/captured_data:/sample_solution/data_warehouse/captured_data
+      - ../../data_warehouse/processed_data:/sample_solution/data_warehouse/processed_data
       
     environment:
       MODEL_1_CONFIG_PATH: ${MODEL_1_CONFIG_PATH}
@@ -62,11 +58,9 @@ services:
     image: ${IMAGE_NAME}:${IMAGE_TAG}
     restart: on-failure
     volumes:
-      - ../../data/raw_data:/sample_solution/data/raw_data
-      - ../../data/train_data:/sample_solution/data/train_data
-      - ../../data/model_config:/sample_solution/data/model_config
-      - ../../data/captured_data:/sample_solution/data/captured_data
-      - ../../data/preprocessed_data:/sample_solution/data/preprocessed_data
+      - ../../data_warehouse/raw_data:/sample_solution/data_warehouse/raw_data
+      - ../../data_warehouse/captured_data:/sample_solution/data_warehouse/captured_data
+      - ../../data_warehouse/processed_data:/sample_solution/data_warehouse/processed_data
       
     environment:
       MODEL_1_CONFIG_PATH: ${MODEL_1_CONFIG_PATH}
@@ -86,11 +80,9 @@ services:
     image: ${IMAGE_NAME}:${IMAGE_TAG}
     restart: on-failure
     volumes:
-      - ../../data/raw_data:/sample_solution/data/raw_data
-      - ../../data/train_data:/sample_solution/data/train_data
-      - ../../data/model_config:/sample_solution/data/model_config
-      - ../../data/captured_data:/sample_solution/data/captured_data
-      - ../../data/preprocessed_data:/sample_solution/data/preprocessed_data
+      - ../../data_warehouse/raw_data:/sample_solution/data_warehouse/raw_data
+      - ../../data_warehouse/captured_data:/sample_solution/data_warehouse/captured_data
+      - ../../data_warehouse/processed_data:/sample_solution/data_warehouse/processed_data
       
     environment:
       MODEL_1_CONFIG_PATH: ${MODEL_1_CONFIG_PATH}
@@ -110,11 +102,9 @@ services:
     image: ${IMAGE_NAME}:${IMAGE_TAG}
     restart: on-failure
     volumes:
-      - ../../data/raw_data:/sample_solution/data/raw_data
-      - ../../data/train_data:/sample_solution/data/train_data
-      - ../../data/model_config:/sample_solution/data/model_config
-      - ../../data/captured_data:/sample_solution/data/captured_data
-      - ../../data/preprocessed_data:/sample_solution/data/preprocessed_data
+      - ../../data_warehouse/raw_data:/sample_solution/data_warehouse/raw_data
+      - ../../data_warehouse/captured_data:/sample_solution/data_warehouse/captured_data
+      - ../../data_warehouse/processed_data:/sample_solution/data_warehouse/processed_data
       
     environment:
       MODEL_1_CONFIG_PATH: ${MODEL_1_CONFIG_PATH}
@@ -134,11 +124,9 @@ services:
     image: ${IMAGE_NAME}:${IMAGE_TAG}
     restart: on-failure
     volumes:
-      - ../../data/raw_data:/sample_solution/data/raw_data
-      - ../../data/train_data:/sample_solution/data/train_data
-      - ../../data/model_config:/sample_solution/data/model_config
-      - ../../data/captured_data:/sample_solution/data/captured_data
-      - ../../data/preprocessed_data:/sample_solution/data/preprocessed_data
+      - ../../data_warehouse/raw_data:/sample_solution/data_warehouse/raw_data
+      - ../../data_warehouse/captured_data:/sample_solution/data_warehouse/captured_data
+      - ../../data_warehouse/processed_data:/sample_solution/data_warehouse/processed_data
       
     environment:
       MODEL_1_CONFIG_PATH: ${MODEL_1_CONFIG_PATH}
@@ -158,11 +146,9 @@ services:
     image: ${IMAGE_NAME}:${IMAGE_TAG}
     restart: on-failure
     volumes:
-      - ../../data/raw_data:/sample_solution/data/raw_data
-      - ../../data/train_data:/sample_solution/data/train_data
-      - ../../data/model_config:/sample_solution/data/model_config
-      - ../../data/captured_data:/sample_solution/data/captured_data
-      - ../../data/preprocessed_data:/sample_solution/data/preprocessed_data
+      - ../../data_warehouse/raw_data:/sample_solution/data_warehouse/raw_data
+      - ../../data_warehouse/captured_data:/sample_solution/data_warehouse/captured_data
+      - ../../data_warehouse/processed_data:/sample_solution/data_warehouse/processed_data
       
     environment:
       MODEL_1_CONFIG_PATH: ${MODEL_1_CONFIG_PATH}
@@ -182,11 +168,9 @@ services:
     image: ${IMAGE_NAME}:${IMAGE_TAG}
     restart: on-failure
     volumes:
-      - ../../data/raw_data:/sample_solution/data/raw_data
-      - ../../data/train_data:/sample_solution/data/train_data
-      - ../../data/model_config:/sample_solution/data/model_config
-      - ../../data/captured_data:/sample_solution/data/captured_data
-      - ../../data/preprocessed_data:/sample_solution/data/preprocessed_data
+      - ../../data_warehouse/raw_data:/sample_solution/data_warehouse/raw_data
+      - ../../data_warehouse/captured_data:/sample_solution/data_warehouse/captured_data
+      - ../../data_warehouse/processed_data:/sample_solution/data_warehouse/processed_data
       
     environment:
       MODEL_1_CONFIG_PATH: ${MODEL_1_CONFIG_PATH}
@@ -207,11 +191,9 @@ services:
     image: ${IMAGE_NAME}:${IMAGE_TAG}
     restart: on-failure
     volumes:
-      - ../../data/raw_data:/sample_solution/data/raw_data
-      - ../../data/train_data:/sample_solution/data/train_data
-      - ../../data/model_config:/sample_solution/data/model_config
-      - ../../data/captured_data:/sample_solution/data/captured_data
-      - ../../data/preprocessed_data:/sample_solution/data/preprocessed_data
+      - ../../data_warehouse/raw_data:/sample_solution/data_warehouse/raw_data
+      - ../../data_warehouse/captured_data:/sample_solution/data_warehouse/captured_data
+      - ../../data_warehouse/processed_data:/sample_solution/data_warehouse/processed_data
       
     environment:
       MODEL_1_CONFIG_PATH: ${MODEL_1_CONFIG_PATH}
@@ -232,11 +214,9 @@ services:
     image: ${IMAGE_NAME}:${IMAGE_TAG}
     restart: on-failure
     volumes:
-      - ../../data/raw_data:/sample_solution/data/raw_data
-      - ../../data/train_data:/sample_solution/data/train_data
-      - ../../data/model_config:/sample_solution/data/model_config
-      - ../../data/captured_data:/sample_solution/data/captured_data
-      - ../../data/preprocessed_data:/sample_solution/data/preprocessed_data
+      - ../../data_warehouse/raw_data:/sample_solution/data_warehouse/raw_data
+      - ../../data_warehouse/captured_data:/sample_solution/data_warehouse/captured_data
+      - ../../data_warehouse/processed_data:/sample_solution/data_warehouse/processed_data
       
     environment:
       MODEL_1_CONFIG_PATH: ${MODEL_1_CONFIG_PATH}
