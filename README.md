@@ -83,7 +83,8 @@
         
         **Note** Just use one if it, if want to use another, run ```make teardown``` then 
         - Not using nginx for load balancing
-        - recheck class ProblemConst for ensure phase and prob id.
+        - recheck class ProblemConst for ensure phase and prob id. (when phase changed)
+        - add new path to nginx config (new phase)
 
         ```bash
         export MLFLOW_TRACKING_URI=http://localhost:5000
