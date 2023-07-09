@@ -101,6 +101,10 @@
         make nginx_up
         make predictor_curl
         ```
+        just down nginx and all of it predictor containers
+        ```bash
+        make nginx_down
+        ```
 
     -   After running `make predictor_curl` or `make nginx_up` to send requests to the server, `./data_warehouse/captured_data` dir should look like:
 
