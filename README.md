@@ -56,7 +56,7 @@
 
 4.  Deploy model predictor
 
-    -   Create model config at `src/config_files/model-1.yaml` with content:
+    -   Create model config at `src/config_files/model_config/phase-*/prob-*/model-1.yaml` with content: 
 
         ```yaml
         phase_id: "phase-1" OR "phase-2"
