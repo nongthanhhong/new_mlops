@@ -69,10 +69,9 @@ class ModelPredictor:
         prediction = self.model.predict(feature_df)
 
         if self.prob_config.prob_id == 'prob-2':
-            '''
-            
-            '''
-            prediction = [self.inverse_label_mapping[label] for label in prediction]
+            prediction_list = prediction.squeeze().tolist()
+            prediction = [self.inverse_label_mapping[label] for label in prediction_list]
+            prediction = np.array(prediction, dtype=np.int64).reshape(-1, 1)
 
         is_drifted = self.detect_drift(feature_df)
 
