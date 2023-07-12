@@ -122,10 +122,10 @@ class PredictorApi:
 
             self._log_request(request)
 
-            with concurrent.futures.ProcessPoolExecutor(max_workers=4) as executor:
-                response = executor.submit(self.predictor_1.predict, data)
+            # with concurrent.futures.ProcessPoolExecutor(max_workers=4) as executor:
+            #     response = executor.submit(self.predictor_1.predict, data)
 
-            # response = self.predictor_1.predict(data)
+            response = self.predictor_1.predict(data)
 
             self._log_response(response)
             return response
@@ -135,10 +135,10 @@ class PredictorApi:
 
             self._log_request(request)
 
-            with concurrent.futures.ProcessPoolExecutor(max_workers=4) as executor:
-                response = executor.submit(self.predictor_2.predict, data)
+            # with concurrent.futures.ProcessPoolExecutor(max_workers=4) as executor:
+            #     response = executor.submit(self.predictor_2.predict, data)
 
-            # response =  self.predictor_2.predict(data)
+            response =  self.predictor_2.predict(data)
             self._log_response(response)
             return response
 
