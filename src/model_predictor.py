@@ -150,8 +150,8 @@ class PredictorApi:
     def _log_response(response: dict):
         pass
 
-    def run(self, port):
-        uvicorn.run(self.app, host="0.0.0.0", port=port, workers=4)
+    # def run(self, port):
+    #     uvicorn.run(self.app, host="0.0.0.0", port=port, workers=4)
 
 
 if __name__ == "__main__":
@@ -181,4 +181,6 @@ if __name__ == "__main__":
     predictor_2 = ModelPredictor(config_file_path=prob_2_config_path)
 
     api = PredictorApi(predictor_1, predictor_2, phase_id = ProblemConst.PHASE)
-    api.run(port=args.port)
+    api_app = api.app
+    uvicorn.run("model_predictor:api_app", host="0.0.0.0", port=args.port, workers=4)
+    # api.run(port=args.port)
