@@ -14,8 +14,11 @@ import pandas as pd
 from pydantic import BaseModel
 from fastapi import FastAPI, Request
 from utils import AppConfig, AppPath
-from data_loader import deploy_data_loader
+from scipy.stats import wasserstein_distance
+from data_loader import deploy_data_loader, load_data
 from problem_config import ProblemConst, create_prob_config
+# import httpx
+import concurrent.futures
 
 PREDICTOR_API_PORT = 8000
 
@@ -44,7 +47,9 @@ class ModelPredictor:
         model_uri = os.path.join("models:/", self.config["model_name"], str(self.config["model_version"]))
         self.model = mlflow.pyfunc.load_model(model_uri)
 
-        self.columns_to_keep = self.prob_config.categorical_cols + self.prob_config.numerical_cols
+        self.columns_to_keep = self.model.feature_names_
+
+        self.train_data, _ = load_data(self.prob_config)
 
         if self.prob_config.prob_id == 'prob-2':
             save_path = f"./prob_resource/{self.prob_config.phase_id}/{self.prob_config.prob_id}/"
@@ -55,7 +60,11 @@ class ModelPredictor:
 
     def detect_drift(self, feature_df) -> int:
         # watch drift between coming requests and training data
-        return random.choice([0, 1])
+        ref_data = self.train_data["feature19"]
+        curr_data = feature_df["feature19"]
+        wasserstein = wasserstein_distance(ref_data, curr_data)
+
+        return 1 if wasserstein > 0.3 else 0
 
     def predict(self, data: Data):
 
@@ -66,7 +75,7 @@ class ModelPredictor:
 
         feature_df = deploy_data_loader(prob_config = self.prob_config, raw_df = raw_data)
         
-        prediction = self.model.predict(feature_df)
+        prediction = self.model.predict(feature_df[self.columns_to_keep])
 
         if self.prob_config.prob_id == 'prob-2':
             '''
@@ -99,15 +108,30 @@ class PredictorApi:
 
         @self.app.post(f"/{phase_id}/prob-1/predict")
         async def predict(data: Data, request: Request):
+
+            # async with httpx.AsyncClient() as client:
+            #     response = await client.get(f"https://api.example.com/data/{x}")
+            #     data = response.json()
+
             self._log_request(request)
-            response = self.predictor_1.predict(data)
+
+            with concurrent.futures.ProcessPoolExecutor(max_workers=4) as executor:
+                response = executor.submit(self.predictor_1.predict, data)
+
+            # response = self.predictor_1.predict(data)
+
             self._log_response(response)
             return response
 
         @self.app.post(f"/{phase_id}/prob-2/predict")
         async def predict(data: Data, request: Request):
+
             self._log_request(request)
-            response = self.predictor_2.predict(data)
+
+            with concurrent.futures.ProcessPoolExecutor(max_workers=4) as executor:
+                response = executor.submit(self.predictor_2.predict, data)
+
+            # response =  self.predictor_2.predict(data)
             self._log_response(response)
             return response
 

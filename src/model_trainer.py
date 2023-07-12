@@ -74,12 +74,14 @@ class ModelTrainer:
         class_model = Models(prob_config)
         class_model.catboost_classifier()
 
-        logging.info("start train_model")
+        logging.info("*****Start training phase*****")
         # init mlflow
         mlflow.set_tracking_uri(AppConfig.MLFLOW_TRACKING_URI)
         mlflow.set_experiment(
             f"{prob_config.phase_id}_{prob_config.prob_id}_{class_model.EXPERIMENT_NAME}"
         )
+
+        logging.info("==============Load data==============")
 
 
         dtrain, dval, dtest, test_x = train_data_loader(prob_config = prob_config, add_captured_data = add_captured_data)
@@ -131,15 +133,7 @@ class ModelTrainer:
             signature=signature,
         )
         mlflow.end_run()
-
-        # Plot the ROC curve
-        # fpr, tpr, _ = roc_curve(dtest.get_label(), predictions)
-        # plt.plot(fpr, tpr, label='ROC curve (AUC = %0.2f)' % auc_score)
-        # plt.plot([0, 1], [0, 1], 'k--')
-        # plt.xlabel('False Positive Rate')
-        # plt.ylabel('True Positive Rate')
-        # plt.legend(loc='lower right')
-        # plt.show()
+        
         logging.info("finish train model")
 
 

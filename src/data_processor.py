@@ -8,13 +8,14 @@ import pickle
 import logging
 import numpy as np
 import pandas as pd
+import catboost as cb
 from scipy import stats
 from problem_config import ProblemConfig
 from category_encoders import TargetEncoder
-from sklearn.preprocessing import OneHotEncoder
+from scipy.stats import wasserstein_distance
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 
-def train_encoder(prob_config: ProblemConfig, df):
+def train_encoder(prob_config: ProblemConfig, df: pd.DataFrame):
 
     """
     Performing transform raw data with categorical columns to numerical:
@@ -31,6 +32,8 @@ def train_encoder(prob_config: ProblemConfig, df):
     # Create a OneHotEncoder object
     encoder = TargetEncoder()
     
+    save_path = f"./prob_resource/{prob_config.phase_id}/{prob_config.prob_id}/"
+    
     # Fit the encoder on the training data
     cat_columns = df[categorical_cols]
     if df[prob_config.target_col].dtypes == 'object':
@@ -42,7 +45,7 @@ def train_encoder(prob_config: ProblemConfig, df):
         label_mapping = dict(zip(uniques, range(len(uniques))))
 
         # Save the label mapping to disk using pickle
-        save_path = f"./prob_resource/{prob_config.phase_id}/{prob_config.prob_id}/"
+        
         with open(save_path + "label_mapping.pickle", 'wb') as f:
             pickle.dump(label_mapping, f)
 
@@ -65,13 +68,12 @@ def train_encoder(prob_config: ProblemConfig, df):
     df = pd.concat([df, one_hot_df], axis=1)
     
     # Save the fitted encoder to disk
-    save_path = f"./prob_resource/{prob_config.phase_id}/{prob_config.prob_id}/"
     with open(save_path + "encoder.pkl", 'wb') as f:
         pickle.dump(encoder, f)
     
     return df
 
-def transform_new_data(prob_config: ProblemConfig, new_df):
+def transform_new_data(prob_config: ProblemConfig, new_df: pd.DataFrame):
     """
     Performing transform new input data with categorical columns to numerical:
     
@@ -100,11 +102,9 @@ def transform_new_data(prob_config: ProblemConfig, new_df):
     # Concatenate the original DataFrame with the one-hot encoded DataFrame
     new_df = pd.concat([new_df, one_hot_df], axis=1)
     
-
-    
     return new_df
 
-def preprocess_data(prob_config: ProblemConfig, data, mode='train'):
+def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, mode='train'):
         
         """
         Performing preprocessing data:
@@ -178,7 +178,7 @@ def preprocess_data(prob_config: ProblemConfig, data, mode='train'):
                     scaler = pickle.load(f)
                 data = pd.DataFrame(scaler.transform(data), columns=data.columns)
         
-        # Drop rows with the wrong format in each column
+        # Handle the wrong datatype in each column
 
         with open(save_path + "types.json", 'r') as f:
             dtype = json.load(f)
@@ -187,10 +187,55 @@ def preprocess_data(prob_config: ProblemConfig, data, mode='train'):
             columns = data.columns
         else:
             columns = data.drop([prob_config.target_col], axis=1).columns
+            
         for column in columns:
             if column in dtype.keys():
-              data[column] = pd.to_numeric(data[column], errors='coerce')
-              data[column] = data[column].astype(dtype[column])
+                data[column] = pd.to_numeric(data[column], errors='coerce')
+                #if are there any not in numerical type, then replace with value of row before, after and 0
+                data[column] = data[column].fillna(method='ffill')
+                data[column] = data[column].fillna(method='bfill')
+                data[column] = data[column].fillna(0)
+
+                data[column] = data[column].astype(dtype[column])
         
         return data 
 
+def feature_selection(data_x: pd.DataFrame, data_y: pd.DataFrame, captured_x: pd.DataFrame):
+
+    model = cb.CatBoostClassifier(eval_metric = "AUC", silent=True)
+    model.fit(data_x, data_y)
+
+    # Get the feature importances
+    feature_importances = model.get_feature_importance()
+    keys = data_x.columns
+    importances_dict = {keys[i]: feature_importances[i] for i in range(len(keys))}
+
+    #Get drift score for all columns
+    drift_score_dict = {}
+    for column in data_x.columns:
+        data1 = data_x[column].to_numpy()
+        data2 = captured_x[column].to_numpy()
+        drift_score_dict[column] = wasserstein_calculator(data1, data2)
+
+    
+    #calculate score for features
+
+    score = {}
+    alpha = 0.3
+    beta = 0.7
+
+    for column in data_x.columns: 
+        score[column] = - alpha * drift_score_dict[column] + beta * importances_dict[column]
+    
+    sorted_score = sorted(score.items(), key=lambda x: x[1])
+    selected_columns = {k: v for k, v in sorted_score[10:]}
+
+    return selected_columns.keys()
+
+
+def wasserstein_calculator(data1, data2):
+
+    wasserstein = wasserstein_distance(data1, data2)
+    # wasserstein = wasserstein / (np.max(data2) - np.min(data2))
+    
+    return wasserstein 

@@ -4,14 +4,15 @@ sys.path.append('/mnt/e/mlops-marathon/new_mlops/utils')
 import os
 import glob
 import pickle
-import hashlib
 import logging
 import argparse
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 import catboost as cb
 from utils import *
 from data_processor import *
+from adapt.instance_based import KLIEP
 from sklearn.model_selection import train_test_split
 from problem_config import ProblemConfig, ProblemConst, get_prob_config, load_feature_configs_dict
 
@@ -27,18 +28,24 @@ def raw_data_process(prob_config: ProblemConfig):
 
 
     training_data = pd.read_parquet(prob_config.raw_data_path)
-    
+
+    training_data = training_data.drop_duplicates().reset_index(drop=True)
 
     logging.info("Encoding categorical columns...")
     encoded_data = train_encoder(prob_config = prob_config, df = training_data)
 
     dtype = encoded_data.dtypes.to_frame('dtypes').reset_index().set_index('index')['dtypes'].astype(str).to_dict()
+    # print(dtype)
     with open(save_path + "types.json", 'w+') as f:
         json.dump(dtype, f)
 
     logging.info("Preprocessing data...")
 
     data = preprocess_data(prob_config = prob_config, data = encoded_data, mode = 'train')
+
+    # nan_rows = data[data.isna().any(axis=1)]
+    # print(nan_rows)
+    # return 
     
     # Export preprocessed data
     logging.info("Save data...")
@@ -71,10 +78,10 @@ def raw_data_process(prob_config: ProblemConfig):
         
 def load_capture_data(prob_config: ProblemConfig):
     captured_x_path = prob_config.captured_x_path
-    captured_y_path = prob_config.uncertain_y_path
+    # captured_y_path = prob_config.uncertain_y_path
     captured_x = pd.read_parquet(captured_x_path)
-    captured_y = pd.read_parquet(captured_y_path)
-    return captured_x, captured_y[prob_config.target_col]
+    # captured_y = pd.read_parquet(captured_y_path)
+    return captured_x
 
 def load_data(prob_config: ProblemConfig):
     processed_x_path = prob_config.processed_x_path
@@ -98,35 +105,53 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
 
     """
      # load train data
+
     if add_captured_data:
-        logging.info("Use captured data")
+        logging.info("Use captured data and feature selection")
 
         data_x, data_y = load_data(prob_config)
+        captured_x = load_capture_data(prob_config)
 
-        captured_x, captured_y = load_capture_data(prob_config)
+        columns = data_x.columns
+        #feature selection
+        logging.info("Selecting features...")
 
-        # Merge the labeled and unlabeled data
-        all_data = pd.concat([data_x, captured_x], axis=0)
-        all_labels = pd.concat([data_y, captured_y], axis=0)
+        selected_columns = feature_selection(data_x = data_x, data_y = data_y, captured_x = captured_x)
+        data_x = data_x[selected_columns]
+        captured_x = captured_x[selected_columns]
 
+        # set weight
+        logging.info("Calculating sample_weight...")
         
-        weight = int( len(train_y) / len(captured_y) ) if len(train_y)>len(captured_y) else 1
-        weights = np.concatenate([np.ones(len(train_y)), np.ones(len(test_y)), np.ones(len(captured_y)) * weight])
+    
+        model = KLIEP()
+        model.fit(X=data_x.to_numpy(), y=data_y.to_numpy(), Xt=captured_x.to_numpy())
+        train_weight = model.predict(data_x.to_numpy())
+
+        # num_negative = []
+        # for n in train_weight:
+        #     if n<0:
+        #         num_negative.append(n)
+
+        # print(sum(num_negative)/len(num_negative))
+        # return 
+
+        epsilon = 1e-6
+        train_weight = [max(w, epsilon) for w in train_weight]
+
+        # print(len(train_weight))
+        # print(train_weight)
+
 
         # split data into training, validation, and test sets
-        train_x, test_x, train_y, test_y, train_weights, test_weights = train_test_split(all_data, all_labels, weights, 
+        train_x, test_x, train_y, test_y, train_weights, test_weights = train_test_split(data_x, data_y, train_weight, 
                                                                                             test_size=0.2, 
                                                                                             random_state=42,
-                                                                                            stratify= all_labels)
+                                                                                            stratify= data_y)
         train_x, val_x, train_y, val_y, train_weights, val_weights = train_test_split(train_x, train_y, train_weights, 
                                                                                         test_size=0.25, 
                                                                                         random_state=42,
                                                                                         stratify= train_y)
-
-        print('Train: old - new: ', np.unique(train_weights, return_counts=True))
-        print('Val: old - new: ', np.unique(val_weights, return_counts=True))
-        print('Test: old - new: ', np.unique(test_weights, return_counts=True))
-
         # create Pool objects for each set with weights
         dtrain = cb.Pool(data=train_x, label=train_y, weight=train_weights)
         dval = cb.Pool(data=val_x, label=val_y, weight=val_weights)
@@ -152,23 +177,6 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
         dtest =  cb.Pool(data=test_x, label=test_y)
         
     return dtrain, dval, dtest, test_x
-
-def generate_id(string):
-
-    '''
-    Create id for each record
-    '''
-    # Convert the string to bytes
-    string_bytes = string.encode('utf-8')
-    
-    # Generate the hash object
-    hash_object = hashlib.md5(string_bytes)
-    
-    # Get the hexadecimal representation of the hash
-    hex_dig = hash_object.hexdigest()
-    
-    # Return the first 8 characters of the hexadecimal representation
-    return hex_dig[:8]
 
 def deploy_data_loader(prob_config: ProblemConfig, raw_df: pd.DataFrame):
 
@@ -201,6 +209,66 @@ def deploy_data_loader(prob_config: ProblemConfig, raw_df: pd.DataFrame):
     raw_df.to_parquet(output_file_path, index=False)
 
     return new_data
+
+def update_processor(prob_config: ProblemConfig, captured_data: pd.DataFrame):
+
+    # Load the config file
+    with open("./src/config_files/data_config.json", 'r') as f:
+        config = json.load(f)
+
+    save_path = f"./prob_resource/{prob_config.phase_id}/{prob_config.prob_id}/"
+    
+    # Load the saved scaler from disk
+    if config['scale_data']:
+        scaler_name = config['scale_data']['method']
+
+    with open(save_path + f"{scaler_name}_scaler.pkl", 'rb') as f:
+        scaler = pickle.load(f)
+    
+    #update with new captured data
+    scaler.fit(captured_data)
+
+    # Save the upgraded scaler 
+    with open(save_path + f"{scaler_name}_scaler.pkl", 'wb') as f:
+        pickle.dump(scaler, f)
+
+def captured_data_loader(prob_config: ProblemConfig):
+
+    columns_to_keep = prob_config.categorical_cols + prob_config.numerical_cols
+
+    if os.path.isfile(prob_config.captured_data_dir / "total_data.parquet"):
+        os.remove(prob_config.captured_data_dir / "total_data.parquet") 
+
+    captured_x = pd.DataFrame()
+
+    for file_path in tqdm(prob_config.captured_data_dir.glob("*.parquet"), ncols=100, desc ="Loading...", unit ="file"):
+
+        try:
+            captured_data = pd.read_parquet(file_path)
+            captured_x = pd.concat([captured_x, captured_data])
+
+            new_data = captured_data[columns_to_keep]
+            encoded_data = transform_new_data(prob_config , new_data)
+            new_data = preprocess_data(prob_config = prob_config, data = encoded_data, mode = 'deploy')
+            new_data.to_parquet(prob_config.processed_captured_data_dir / file_path.name)
+            # os.remove(file_path) 
+        
+        except:
+            print(f"Error: Cannot open {file_path}, then remove it!")
+            os.remove(file_path) 
+        
+    captured_x = captured_x.drop_duplicates().reset_index(drop=True)
+    new_data = captured_x[columns_to_keep]
+    encoded_data = transform_new_data(prob_config , new_data)
+
+    update_processor(prob_config = prob_config, captured_data = encoded_data)
+
+    new_data = preprocess_data(prob_config = prob_config, data = encoded_data, mode = 'deploy')
+
+    new_data.to_parquet(prob_config.captured_x_path)
+
+    return new_data
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

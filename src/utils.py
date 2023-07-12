@@ -1,5 +1,6 @@
 import logging
 import os
+import hashlib
 from pydantic import BaseModel
 
 from pathlib import Path
@@ -35,3 +36,21 @@ class Data(BaseModel):
     id: str
     rows: list
     columns: list
+
+
+def generate_id(string):
+
+    '''
+    Create id for each record
+    '''
+    # Convert the string to bytes
+    string_bytes = string.encode('utf-8')
+    
+    # Generate the hash object
+    hash_object = hashlib.md5(string_bytes)
+    
+    # Get the hexadecimal representation of the hash
+    hex_dig = hash_object.hexdigest()
+    
+    # Return the first 8 characters of the hexadecimal representation
+    return hex_dig[:8]

@@ -14,3 +14,4 @@ seaborn
 tqdm
 joblib
 category_encoders
+adapt
