@@ -150,7 +150,6 @@ class PredictorApi:
     def _log_response(response: dict):
         pass
 
-    @staticmethod
     def get_app(self):
         return self.app
 
