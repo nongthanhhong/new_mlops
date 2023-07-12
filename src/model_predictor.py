@@ -156,7 +156,7 @@ class PredictorApi:
     # def run(self, port):
     #     uvicorn.run(self.app, host="0.0.0.0", port=port, workers=4)
 
-
+app = None
 if __name__ == "__main__":
     prob_1_config_path = (
         AppPath.MODEL_CONFIG_DIR
