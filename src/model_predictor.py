@@ -185,5 +185,5 @@ if __name__ == "__main__":
 
     api = PredictorApi(predictor_1, predictor_2, phase_id = ProblemConst.PHASE)
     
-    uvicorn.run("src.model_predictor:api.get_app()", host="0.0.0.0", port=args.port, workers=4)
+    uvicorn.run(".src.model_predictor:api.get_app()", host="0.0.0.0", port=args.port, workers=4)
     # api.run(port=args.port)
