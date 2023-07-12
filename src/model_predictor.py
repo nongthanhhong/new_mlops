@@ -47,7 +47,14 @@ class ModelPredictor:
         model_uri = os.path.join("models:/", self.config["model_name"], str(self.config["model_version"]))
         self.model = mlflow.pyfunc.load_model(model_uri)
 
-        self.columns_to_keep = self.model.feature_names_
+        signature = self.model._model_meta.signature
+        input_schema = signature.inputs
+
+        feature_names = []
+        for col_spec in input_schema:
+            feature_names.append(col_spec.name)
+
+        self.columns_to_keep = feature_names
 
         self.train_data, _ = load_data(self.prob_config)
 
