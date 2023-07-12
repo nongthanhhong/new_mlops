@@ -150,6 +150,7 @@ class PredictorApi:
     def _log_response(response: dict):
         pass
 
+    @staticmethod
     def get_app(self):
         return self.app
 
@@ -185,5 +186,5 @@ if __name__ == "__main__":
 
     api = PredictorApi(predictor_1, predictor_2, phase_id = ProblemConst.PHASE)
     
-    uvicorn.run("model_predictor:PredictorApi.get_app()", host="0.0.0.0", port=args.port, workers=4)
+    uvicorn.run("model_predictor:PredictorApi.app", host="0.0.0.0", port=args.port, workers=4)
     # api.run(port=args.port)
