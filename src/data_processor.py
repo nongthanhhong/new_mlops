@@ -228,7 +228,7 @@ def feature_selection(data_x: pd.DataFrame, data_y: pd.DataFrame, captured_x: pd
         score[column] = - alpha * drift_score_dict[column] + beta * importances_dict[column]
     
     sorted_score = sorted(score.items(), key=lambda x: x[1])
-    selected_columns = {k: v for k, v in sorted_score[4:]}
+    selected_columns = {k: v for k, v in sorted_score[3:]}
 
     return selected_columns.keys()
 
