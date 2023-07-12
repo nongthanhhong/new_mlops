@@ -71,7 +71,7 @@ class ModelPredictor:
         curr_data = feature_df["feature19"]
         wasserstein = wasserstein_distance(ref_data, curr_data)
 
-        return 1 if wasserstein > 0.3 else 0
+        return 1 if wasserstein > 0.25 else 0
 
     def predict(self, data: Data):
 
