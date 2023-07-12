@@ -144,7 +144,7 @@ class PredictorApi:
         pass
 
     def run(self, port):
-        uvicorn.run(self.app, host="0.0.0.0", port=port)
+        uvicorn.run(self.app, host="0.0.0.0", port=port, workers=4)
 
 
 if __name__ == "__main__":

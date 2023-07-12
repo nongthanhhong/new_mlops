@@ -48,7 +48,6 @@
         export MLFLOW_TRACKING_URI=http://localhost:5040
         python src/model_trainer.py --phase-id phase-1 --prob-id prob-1
         python src/model_trainer.py --phase-id phase-2 --prob-id prob-1 
-        python src/model_trainer.py --phase-id phase-2 --prob-id prob-1 --add-captured-data True
         ```
 
     -   Register model: - Go to mlflow UI at <http://localhost:5040> and 
@@ -93,7 +92,7 @@
 
         # those num worker set equal to num cpu processor
 
-        uvicorn myapp:app --workers 4
+        uvicorn --workers 4
 
         # and change max_workers in concurrent.futures.ProcessPoolExecutor() predict function equal to workers uvicorn
 
@@ -129,6 +128,8 @@
 
         ```bash
         python src/captured_data_processor.py --phase-id phase-2 --prob-id prob-1
+
+        python src/model_trainer.py --phase-id phase-2 --prob-id prob-1 --add-captured-data True
         ```
 6.  Teardown
 
