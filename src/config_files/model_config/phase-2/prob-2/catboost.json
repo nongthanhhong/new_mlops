@@ -10,11 +10,11 @@
     },
     "params": {
         "n_estimators" : 5000,
-        "depth": 7,
+        "depth": 10,
         "auto_class_weights": "Balanced",
         "learning_rate" : 0.02,
-        "subsample" : 0.4,
-        "l2_leaf_reg": 5,
+        "subsample" : 0.5,
+        "l2_leaf_reg": 10,
         "eval_metric":"AUC",
         "bootstrap_type":"Bernoulli"
     }

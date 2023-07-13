@@ -69,8 +69,8 @@
         ```bash
         # run model predictor
         export MLFLOW_TRACKING_URI=http://localhost:5040
-        python src/model_predictor.py --config-path src/config_files/model-1.yaml \
-                                                    src/config_files/model-2.yaml \
+        python src/model_predictor.py --config-path src/config_files/model_config/phase-1/prob-1/model-1.yaml \
+                                                    src/config_files/model_config/phase-1/prob-2/model-1.yaml \
                                       --port 8000
 
         # curl in another terminal
@@ -99,9 +99,9 @@
         ```
 
         ```bash
-        make mlflow_restart
+        <!-- make mlflow_restart
         make predictor_up
-        make predictor_curl
+        make predictor_curl -->
         ```
         - Using nginx
         ```

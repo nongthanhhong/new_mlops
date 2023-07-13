@@ -58,7 +58,7 @@ class ModelPredictor:
 
         self.train_data, _ = load_data(self.prob_config)
 
-        if self.prob_config.prob_id == 'prob-2':
+        if self.prob_config.prob_id == 'prob-2' and self.prob_config.phase_id == "phase-2":
             save_path = f"./prob_resource/{self.prob_config.phase_id}/{self.prob_config.prob_id}/"
             with open(save_path + "label_mapping.pickle", 'rb') as f:
                 label_mapping = pickle.load(f)
@@ -71,7 +71,7 @@ class ModelPredictor:
         curr_data = feature_df["feature19"]
         wasserstein = wasserstein_distance(ref_data, curr_data)
 
-        return 1 if wasserstein > 0.25 else 0
+        return 1 if wasserstein > 0.38 else 0
 
     def predict(self, data: Data):
 
@@ -84,7 +84,7 @@ class ModelPredictor:
         
         prediction = self.model.predict(feature_df[self.columns_to_keep])
 
-        if self.prob_config.prob_id == 'prob-2':
+        if self.prob_config.prob_id == 'prob-2' and self.prob_config.phase_id == "phase-2":
             '''
             transform numerical label to string label
             '''
@@ -93,6 +93,8 @@ class ModelPredictor:
             prediction = np.array(prediction, dtype=str)
 
         is_drifted = self.detect_drift(feature_df)
+        # is_drifted = 0
+
 
         run_time = round((time.time() - start_time) * 1000, 0)
         logging.info(f"prediction takes {run_time} ms")
@@ -122,10 +124,10 @@ class PredictorApi:
 
             self._log_request(request)
 
-            # with concurrent.futures.ProcessPoolExecutor(max_workers=4) as executor:
-            #     response = executor.submit(self.predictor_1.predict, data)
+            with concurrent.futures.ProcessPoolExecutor(max_workers=4) as executor:
+                response = executor.submit(self.predictor_1.predict, data).result()
 
-            response = self.predictor_1.predict(data)
+            # response = self.predictor_1.predict(data)
 
             self._log_response(response)
             return response
@@ -135,10 +137,11 @@ class PredictorApi:
 
             self._log_request(request)
 
-            # with concurrent.futures.ProcessPoolExecutor(max_workers=4) as executor:
-            #     response = executor.submit(self.predictor_2.predict, data)
+            with concurrent.futures.ProcessPoolExecutor(max_workers=4) as executor:
+                response = executor.submit(self.predictor_2.predict, data).result()
 
-            response =  self.predictor_2.predict(data)
+            # response =  self.predictor_2.predict(data)
+
             self._log_response(response)
             return response
 
@@ -177,13 +180,14 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=PREDICTOR_API_PORT)
     args = parser.parse_args()
 
-    # predictor_1 = ModelPredictor(config_file_path=args.config_path[0])
-    # predictor_2 = ModelPredictor(config_file_path=args.config_path[1])
+    predictor_1 = ModelPredictor(config_file_path=args.config_path[0])
+    predictor_2 = ModelPredictor(config_file_path=args.config_path[1])
 
-    predictor_1 = ModelPredictor(config_file_path=prob_1_config_path)
-    predictor_2 = ModelPredictor(config_file_path=prob_2_config_path)
+    # predictor_1 = ModelPredictor(config_file_path=prob_1_config_path)
+    # predictor_2 = ModelPredictor(config_file_path=prob_2_config_path)
 
     api = PredictorApi(predictor_1, predictor_2, phase_id = ProblemConst.PHASE)
+    # api = PredictorApi(predictor_1, predictor_2, phase_id = "phase-1")
     # app = api.get_app()
     # uvicorn.run("model_predictor:app", host="0.0.0.0", port=args.port, workers=4)
     api.run(port=args.port)

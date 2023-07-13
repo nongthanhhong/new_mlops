@@ -117,6 +117,7 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
         logging.info("Selecting features...")
 
         selected_columns = feature_selection(data_x = data_x, data_y = data_y, captured_x = captured_x)
+        
         data_x = data_x[selected_columns]
         captured_x = captured_x[selected_columns]
 
@@ -128,24 +129,13 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
         model.fit(X=data_x.to_numpy(), y=data_y.to_numpy(), Xt=captured_x.to_numpy())
         train_weight = model.predict(data_x.to_numpy())
 
-        # num_negative = []
-        # for n in train_weight:
-        #     if n<0:
-        #         num_negative.append(n)
-
-        # print(sum(num_negative)/len(num_negative))
-        # return 
-
         epsilon = 1e-6
         train_weight = [max(w, epsilon) for w in train_weight]
-
-        # print(len(train_weight))
-        # print(train_weight)
 
 
         # split data into training, validation, and test sets
         train_x, test_x, train_y, test_y, train_weights, test_weights = train_test_split(data_x, data_y, train_weight, 
-                                                                                            test_size=0.2, 
+                                                                                            test_size=0.1, 
                                                                                             random_state=42,
                                                                                             stratify= data_y)
         train_x, val_x, train_y, val_y, train_weights, val_weights = train_test_split(train_x, train_y, train_weights, 
@@ -153,7 +143,7 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
                                                                                         random_state=42,
                                                                                         stratify= train_y)
         # create Pool objects for each set with weights
-        dtrain = cb.Pool(data=train_x, label=train_y, weight=train_weights)
+        dtrain = cb.Pool(data=train_x, label=train_y)
         dval = cb.Pool(data=val_x, label=val_y, weight=val_weights)
         dtest = cb.Pool(data=test_x, label=test_y, weight=test_weights)
 
@@ -164,7 +154,7 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
 
         # split data into training, validation, and test sets
         train_x, test_x, train_y, test_y = train_test_split(data_x, data_y,
-                                                            test_size=0.2, 
+                                                            test_size=0.1, 
                                                             random_state=42,
                                                             stratify= data_y)
         train_x, val_x, train_y, val_y = train_test_split(train_x, train_y,

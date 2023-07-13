@@ -24,9 +24,8 @@ mlflow_down:
 # predictor
 predictor_up:
 	bash platform/deploy.sh run_predictor \
-	 
-							/src/config_files/model-1.yaml \
-							/src/config_files/model-2.yaml \
+							src/config_files/model_config/phase-1/prob-1/model-1.yaml \
+							src/config_files/model_config/phase-1/prob-2/model-1.yaml \
 							5040
 
 predictor_down:
@@ -48,9 +47,10 @@ nginx_up:
 	export MLFLOW_TRACKING_URI=http://localhost:5000
 	
 	bash platform/nginx_deploy.sh run_nginx \
-							/src/config_files/model-1.yaml \
-							/src/config_files/model-2.yaml \
+							src/config_files/model_config/phase-2/prob-1/model-1.yaml \
+							src/config_files/model_config/phase-2/prob-2/model-1.yaml \
 							5040
+
 nginx_down:
 	PORT=5040 docker-compose -f platform/nginx/docker-compose.yml down
 
