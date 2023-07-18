@@ -72,7 +72,7 @@ class ModelPredictor:
         curr_data = drift_feature
         wasserstein = wasserstein_distance(ref_data, curr_data)
 
-        return 1 if wasserstein >= 0.3 else 0
+        return 1 if wasserstein >= 0.29 else 0
 
     def predict(self, data: Data):
 
@@ -124,7 +124,7 @@ class PredictorApi:
 
             self._log_request(request)
 
-            with concurrent.futures.ProcessPoolExecutor(max_workers=2) as executor:
+            with concurrent.futures.ProcessPoolExecutor(max_workers=4) as executor:
                 response = executor.submit(self.predictor_1.predict, data).result()
 
             # response = self.predictor_1.predict(data)
@@ -137,7 +137,7 @@ class PredictorApi:
 
             self._log_request(request)
 
-            with concurrent.futures.ProcessPoolExecutor(max_workers=2) as executor:
+            with concurrent.futures.ProcessPoolExecutor(max_workers=4) as executor:
                 response = executor.submit(self.predictor_2.predict, data).result()
 
             # response =  self.predictor_2.predict(data)
