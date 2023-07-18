@@ -124,115 +124,115 @@ class ModelTrainer:
         logging.info("\n" + classification_report(dtest.get_label(), predictions))
         logging.info("\n" + str(confusion_matrix(dtest.get_label(), predictions)))
 
-        # logging.info("=================Retrain model with cost matrix======================")
+        logging.info("=================Retrain model with cost matrix======================")
         
         
-        # # calculate the confusion matrix
-        # cm = confusion_matrix(dtest.get_label(), predictions)
+        # calculate the confusion matrix
+        cm = confusion_matrix(dtest.get_label(), predictions)
 
-        # # calculate the misclassification costs
-        # # create the cost matrix
-        # cost_matrix = np.zeros((cm.shape[0], cm.shape[1]))
-        # for i in range(cm.shape[0]):
-        #     row_sum = sum(cm[i])
-        #     for j in range(cm.shape[1]):
-        #         if i != j:
-        #             cost_matrix[i][j] = cm[i][j] / row_sum
+        # calculate the misclassification costs
+        # create the cost matrix
+        cost_matrix = np.zeros((cm.shape[0], cm.shape[1]))
+        for i in range(cm.shape[0]):
+            row_sum = sum(cm[i])
+            for j in range(cm.shape[1]):
+                if i != j:
+                    cost_matrix[i][j] = cm[i][j] / row_sum
 
-        # classes = np.unique(dtrain.get_label())
+        classes = np.unique(dtrain.get_label())
 
-        # weights_1 = np.mean(cost_matrix, axis=1)
-        # print(weights_1)
+        weights_1 = np.mean(cost_matrix, axis=1)
+        print(weights_1)
                     
-        # weights_2 = compute_class_weight(class_weight='balanced', classes=classes, y=dtrain.get_label())
-        # print(weights_2)
+        weights_2 = compute_class_weight(class_weight='balanced', classes=classes, y=dtrain.get_label())
+        print(weights_2)
 
-        # weights = [x + y for x, y in zip(weights_1, weights_2)]
+        weights = [x + y for x, y in zip(weights_1, weights_2)]
 
 
-        # # initialize the CatBoostClassifier with the cost matrix
-        # class_weights = dict(zip(classes, weights))
-        # # print(class_weights)
-        # # return
+        # initialize the CatBoostClassifier with the cost matrix
+        class_weights = dict(zip(classes, weights))
+        # print(class_weights)
+        # return
 
-        # key_to_exclude = 'auto_class_weights'
+        key_to_exclude = 'auto_class_weights'
 
-        # new_params = {key: value for key, value in class_model.params.items() if key != key_to_exclude}
-        # model = cb.CatBoostClassifier(**new_params, class_weights=class_weights)
+        new_params = {key: value for key, value in class_model.params.items() if key != key_to_exclude}
+        model = cb.CatBoostClassifier(**new_params, class_weights=class_weights)
 
-        # # train the model
-        # model.fit(dtrain, 
-        #           eval_set=dval,
-        #           **class_model.train)
+        # train the model
+        model.fit(dtrain, 
+                  eval_set=dval,
+                  **class_model.train)
         
-        # logging.info("==============Testing new model==============")
+        logging.info("==============Testing new model==============")
          
-        # predictions = model.predict(dtest)
+        predictions = model.predict(dtest)
         
-        # if len(np.unique(dtest.get_label()))>2:
-        #     # Compute the ROC AUC score using the one-vs-one approach
-        #     auc_score = roc_auc_score(dtest.get_label(), model.predict_proba(dtest), multi_class='ovo')
+        if len(np.unique(dtest.get_label()))>2:
+            # Compute the ROC AUC score using the one-vs-one approach
+            auc_score = roc_auc_score(dtest.get_label(), model.predict_proba(dtest), multi_class='ovo')
 
-        #     # Compute the ROC AUC score using the one-vs-rest approach
-        #     # roc_auc = roc_auc_score(dtest.get_label(), predictions, multi_class='ovr')
-        # else:
-        #     auc_score = roc_auc_score(dtest.get_label(), predictions)
-
-        
-        # acc_score = accuracy_score(dtest.get_label(), predictions)
-        # metrics = {"test_auc": auc_score, "test_acc": acc_score}
-
-        # logging.info(f"metrics: {metrics}")
-        # logging.info("\n" + classification_report(dtest.get_label(), predictions))
-        # logging.info("\n" + str(confusion_matrix(dtest.get_label(), predictions)))
-
-
-        # logging.info("==============Improve use CalibratedClassifierCV model==============")
-
-        # # Assume that `X_test` and `y_test` are the test data and labels
-        # # Assume that `clf` is a trained binary classifier with a `predict_proba` method
-
-        # # Use the `predict_proba` method to get the predicted probabilities for the positive class
-        # predict_probs = model.predict_proba(dtest)
-        # # Calculate the log loss
-        # loss = log_loss(dtest.get_label(), predict_probs)
-        # print(f"Log loss: {loss:.3f}")
-
-        # # Calibrate the predicted probabilities using isotonic regression
-        # calibrator = CalibratedClassifierCV(model, cv='prefit', method='isotonic')
-        # calibrator.fit(test_x, dtest.get_label())
-        # calibrated_probs = calibrator.predict_proba(test_x)
-        # predictions = calibrator.predict(test_x)
-
-        # # Calculate the ROC AUC score and log loss for the calibrated probabilities
+            # Compute the ROC AUC score using the one-vs-rest approach
+            # roc_auc = roc_auc_score(dtest.get_label(), predictions, multi_class='ovr')
+        else:
+            auc_score = roc_auc_score(dtest.get_label(), predictions)
 
         
-        # # Calculate the ROC AUC score
-        # if len(np.unique(dtest.get_label()))>2:
-        #     # Compute the ROC AUC score using the one-vs-one approach
-        #     calibrated_auc = roc_auc_score(dtest.get_label(), calibrated_probs, multi_class='ovo')
+        acc_score = accuracy_score(dtest.get_label(), predictions)
+        metrics = {"test_auc": auc_score, "test_acc": acc_score}
 
-        #     # Compute the ROC AUC score using the one-vs-rest approach
-        #     # roc_auc = roc_auc_score(dtest.get_label(), predictions, multi_class='ovr')
-        # else:
-        #     calibrated_auc = roc_auc_score(dtest.get_label(), predictions)
+        logging.info(f"metrics: {metrics}")
+        logging.info("\n" + classification_report(dtest.get_label(), predictions))
+        logging.info("\n" + str(confusion_matrix(dtest.get_label(), predictions)))
 
-        # print(f"Calibrated ROC AUC score: {calibrated_auc:.3f}")
 
-        # calibrated_loss = log_loss(dtest.get_label(), calibrated_probs)
-        # print(f"Calibrated log loss: {calibrated_loss:.3f}")
+        logging.info("==============Improve use CalibratedClassifierCV model==============")
 
-        # acc_score = accuracy_score(dtest.get_label(), predictions)
+        # Assume that `X_test` and `y_test` are the test data and labels
+        # Assume that `clf` is a trained binary classifier with a `predict_proba` method
 
-        # metrics = {"test_auc": calibrated_auc, "log_loss": calibrated_loss, "test_acc": acc_score}
+        # Use the `predict_proba` method to get the predicted probabilities for the positive class
+        predict_probs = model.predict_proba(dtest)
+        # Calculate the log loss
+        loss = log_loss(dtest.get_label(), predict_probs)
+        print(f"Log loss: {loss:.3f}")
+
+        # Calibrate the predicted probabilities using isotonic regression
+        calibrator = CalibratedClassifierCV(model, cv='prefit', method='isotonic')
+        calibrator.fit(test_x, dtest.get_label())
+        calibrated_probs = calibrator.predict_proba(test_x)
+        predictions = calibrator.predict(test_x)
+
+        # Calculate the ROC AUC score and log loss for the calibrated probabilities
+
+        
+        # Calculate the ROC AUC score
+        if len(np.unique(dtest.get_label()))>2:
+            # Compute the ROC AUC score using the one-vs-one approach
+            calibrated_auc = roc_auc_score(dtest.get_label(), calibrated_probs, multi_class='ovo')
+
+            # Compute the ROC AUC score using the one-vs-rest approach
+            # roc_auc = roc_auc_score(dtest.get_label(), predictions, multi_class='ovr')
+        else:
+            calibrated_auc = roc_auc_score(dtest.get_label(), predictions)
+
+        print(f"Calibrated ROC AUC score: {calibrated_auc:.3f}")
+
+        calibrated_loss = log_loss(dtest.get_label(), calibrated_probs)
+        print(f"Calibrated log loss: {calibrated_loss:.3f}")
+
+        acc_score = accuracy_score(dtest.get_label(), predictions)
+
+        metrics = {"test_auc": calibrated_auc, "log_loss": calibrated_loss, "test_acc": acc_score}
 
         
 
-        # logging.info(f"metrics: {metrics}")
-        # logging.info("\n" + classification_report(dtest.get_label(), predictions))
-        # logging.info("\n" + str(confusion_matrix(dtest.get_label(), predictions)))
+        logging.info(f"metrics: {metrics}")
+        logging.info("\n" + classification_report(dtest.get_label(), predictions))
+        logging.info("\n" + str(confusion_matrix(dtest.get_label(), predictions)))
 
-        # model = calibrator
+        model = calibrator
 
 
         # mlflow log
