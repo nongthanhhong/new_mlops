@@ -21,7 +21,7 @@ def send_data_to_server(data, url):
 
 #take list file 
 
-url = 'http://localhost:8000/phase-2/prob-2/predict'
+url = 'http://localhost:5040/phase-2/prob-2/predict'
 root_path = "data_warehouse/captured_data/phase-2/prob-2/*.parquet"
 
 len = 0
