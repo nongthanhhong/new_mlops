@@ -56,7 +56,8 @@ class ModelPredictor:
 
         self.columns_to_keep = feature_names
 
-        self.train_data, _ = load_data(self.prob_config)
+        train_data, _ = load_data(self.prob_config)
+        self.drift_column = train_data["feature19"]
 
         if self.prob_config.prob_id == 'prob-2' and self.prob_config.phase_id == "phase-2":
             save_path = f"./prob_resource/{self.prob_config.phase_id}/{self.prob_config.prob_id}/"
@@ -65,20 +66,19 @@ class ModelPredictor:
             self.inverse_label_mapping = {v: k for k, v in label_mapping.items()}
 
 
-    def detect_drift(self, feature_df) -> int:
+    def detect_drift(self, drift_feature) -> int:
         # watch drift between coming requests and training data
-        ref_data = self.train_data["feature19"]
-        curr_data = feature_df["feature19"]
+        ref_data = self.drift_column
+        curr_data = drift_feature
         wasserstein = wasserstein_distance(ref_data, curr_data)
 
-        return 1 if wasserstein > 0.38 else 0
+        return 1 if wasserstein >= 0.38 else 0
 
     def predict(self, data: Data):
 
         start_time = time.time()
 
         raw_data = pd.DataFrame(data.rows, columns=data.columns)
-        # raw_data = pd.read_parquet("./data_warehouse/captured_data/phase-1/prob-1/3b236d80-417a-47b5-b3ba-0c6327dd27fe.parquet")
 
         feature_df = deploy_data_loader(prob_config = self.prob_config, raw_df = raw_data)
         
@@ -92,7 +92,7 @@ class ModelPredictor:
             prediction = [self.inverse_label_mapping[label] for label in prediction_list]
             prediction = np.array(prediction, dtype=str)
 
-        is_drifted = self.detect_drift(feature_df)
+        is_drifted = self.detect_drift(feature_df["feature19"])
         # is_drifted = 0
 
 
