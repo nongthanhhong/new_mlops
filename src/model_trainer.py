@@ -11,7 +11,7 @@ import xgboost as xgb
 from collections import Counter
 from mlflow.models.signature import infer_signature
 from sklearn.utils.class_weight import compute_class_weight
-from sklearn.metrics import roc_auc_score, classification_report, confusion_matrix, roc_curve, log_loss
+from sklearn.metrics import roc_auc_score, classification_report, confusion_matrix, roc_curve, log_loss, accuracy_score
 from sklearn.calibration import CalibratedClassifierCV
 import matplotlib.pyplot as plt
 from data_loader import train_data_loader
@@ -117,8 +117,8 @@ class ModelTrainer:
         else:
             auc_score = roc_auc_score(dtest.get_label(), predictions)
 
-        
-        metrics = {"test_auc": auc_score}
+        acc_score = accuracy_score(dtest.get_label(), predictions)
+        metrics = {"test_auc": auc_score, "test_acc": acc_score}
 
         logging.info(f"metrics: {metrics}")
         logging.info("\n" + classification_report(dtest.get_label(), predictions))
@@ -179,7 +179,8 @@ class ModelTrainer:
             auc_score = roc_auc_score(dtest.get_label(), predictions)
 
         
-        metrics = {"test_auc": auc_score}
+        acc_score = accuracy_score(dtest.get_label(), predictions)
+        metrics = {"test_auc": auc_score, "test_acc": acc_score}
 
         logging.info(f"metrics: {metrics}")
         logging.info("\n" + classification_report(dtest.get_label(), predictions))
@@ -221,7 +222,9 @@ class ModelTrainer:
         calibrated_loss = log_loss(dtest.get_label(), calibrated_probs)
         print(f"Calibrated log loss: {calibrated_loss:.3f}")
 
-        metrics = {"test_auc": calibrated_auc, "log_loss": calibrated_loss}
+        acc_score = accuracy_score(dtest.get_label(), predictions)
+
+        metrics = {"test_auc": calibrated_auc, "log_loss": calibrated_loss, "test_acc": acc_score}
 
         
 
