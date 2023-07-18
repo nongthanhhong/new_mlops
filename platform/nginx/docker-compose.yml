@@ -100,28 +100,28 @@ services:
     ports:
       - "8003:8000"
   
-  model_predictor_5:
-    # Configuration for your third model_predictor instance goes here
-    # ...
-    image: ${IMAGE_NAME}:${IMAGE_TAG}
-    restart: on-failure
-    volumes:
-      - ../../data_warehouse/raw_data:/sample_solution/data_warehouse/raw_data
-      - ../../data_warehouse/captured_data:/sample_solution/data_warehouse/captured_data
-      - ../../data_warehouse/processed_data:/sample_solution/data_warehouse/processed_data
-      - ../../prob_resource:/sample_solution/prob_resource
+  # model_predictor_5:
+  #   # Configuration for your third model_predictor instance goes here
+  #   # ...
+  #   image: ${IMAGE_NAME}:${IMAGE_TAG}
+  #   restart: on-failure
+  #   volumes:
+  #     - ../../data_warehouse/raw_data:/sample_solution/data_warehouse/raw_data
+  #     - ../../data_warehouse/captured_data:/sample_solution/data_warehouse/captured_data
+  #     - ../../data_warehouse/processed_data:/sample_solution/data_warehouse/processed_data
+  #     - ../../prob_resource:/sample_solution/prob_resource
       
-    environment:
-      MODEL_1_CONFIG_PATH: ${MODEL_1_CONFIG_PATH}
-      MODEL_2_CONFIG_PATH: ${MODEL_2_CONFIG_PATH}
+  #   environment:
+  #     MODEL_1_CONFIG_PATH: ${MODEL_1_CONFIG_PATH}
+  #     MODEL_2_CONFIG_PATH: ${MODEL_2_CONFIG_PATH}
 
-      MLFLOW_TRACKING_URI: http://host.docker.internal:5000
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    entrypoint: /bin/sh -c "python src/model_predictor.py --config-path ${MODEL_1_CONFIG_PATH} ${MODEL_2_CONFIG_PATH} --port 8000"
+  #     MLFLOW_TRACKING_URI: http://host.docker.internal:5000
+  #   extra_hosts:
+  #     - "host.docker.internal:host-gateway"
+  #   entrypoint: /bin/sh -c "python src/model_predictor.py --config-path ${MODEL_1_CONFIG_PATH} ${MODEL_2_CONFIG_PATH} --port 8000"
 
-    ports:
-      - "8004:8000"
+  #   ports:
+  #     - "8004:8000"
 
   # model_predictor_6:
   #   # Configuration for your third model_predictor instance goes here
