@@ -12,14 +12,16 @@ from tqdm import tqdm
 import catboost as cb
 from utils import *
 from data_processor import *
+from scipy.stats import wasserstein_distance, ks_2samp
 from adapt.instance_based import KLIEP
+from imblearn.over_sampling import SMOTE
 from sklearn.model_selection import train_test_split
 from problem_config import ProblemConfig, ProblemConst, get_prob_config, load_feature_configs_dict
 
 
 
 
-def raw_data_process(prob_config: ProblemConfig):
+def raw_data_process(prob_config: ProblemConfig, flag = "new"):
     logging.info("------------Start process_raw_data------------")
     logging.info("Processing data from  %s %s", prob_config.phase_id, prob_config.prob_id)
 
@@ -29,7 +31,7 @@ def raw_data_process(prob_config: ProblemConfig):
 
     training_data = pd.read_parquet(prob_config.raw_data_path)
 
-    training_data = training_data.drop_duplicates().reset_index(drop=True)
+    # training_data = training_data.drop_duplicates().reset_index(drop=True)
 
     logging.info("Encoding categorical columns...")
     encoded_data = train_encoder(prob_config = prob_config, df = training_data)
@@ -41,7 +43,7 @@ def raw_data_process(prob_config: ProblemConfig):
 
     logging.info("Preprocessing data...")
 
-    data = preprocess_data(prob_config = prob_config, data = encoded_data, mode = 'train')
+    data = preprocess_data(prob_config = prob_config, data = encoded_data, mode = 'train', flag = flag)
 
     # nan_rows = data[data.isna().any(axis=1)]
     # print(nan_rows)
@@ -107,9 +109,10 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
      # load train data
 
     if add_captured_data:
-        logging.info("Use captured data and feature selection")
 
         data_x, data_y = load_data(prob_config)
+        
+        logging.info("Use captured data and feature selection")
         captured_x = load_capture_data(prob_config)
 
         columns = data_x.columns
@@ -142,8 +145,42 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
                                                                                         test_size=0.25, 
                                                                                         random_state=42,
                                                                                         stratify= train_y)
+        
+        # smote = SMOTE(sampling_strategy={2: desired_count}, random_state=0)
+        smote = SMOTE(random_state=0)
+
+        # X_resampled, y_resampled = smote.fit_resample(data_x, data_y)
+        agr_train_x, agr_train_y = smote.fit_resample(train_x, train_y)
+
+        logging.info("Checking distribution of new generated dataset...")
+
+        total_dist = 0
+
+        for col in train_x.columns:
+
+            logging.info(col)
+
+            # compute the Wasserstein distance
+            wasserstein_dist = wasserstein_distance(train_x[col], agr_train_x[col])
+            print("Wasserstein distance:", wasserstein_dist)
+
+            # perform the two-sample Kolmogorov-Smirnov test
+            statistic, pvalue = ks_2samp(train_x[col], agr_train_x[col])
+            print("KS statistic:", statistic)
+            print("KS p-value:", pvalue)
+
+            total_dist += wasserstein_dist
+            
+        if total_dist < len(train_x.columns)*0.005:
+            logging.info("Use oversampling for training dataset")
+            dtrain = cb.Pool(data=agr_train_x, label=agr_train_y)
+        else:
+            logging.info("Not use oversampling for training dataset")
+            dtrain = cb.Pool(data= train_x, label= train_y)
+
+
         # create Pool objects for each set with weights
-        dtrain = cb.Pool(data=train_x, label=train_y)
+        # dtrain = cb.Pool(data=agr_train_x, label=agr_train_y)
         dval = cb.Pool(data=val_x, label=val_y, weight=val_weights)
         dtest = cb.Pool(data=test_x, label=test_y, weight=test_weights)
 
@@ -168,7 +205,7 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
         
     return dtrain, dval, dtest, test_x
 
-def deploy_data_loader(prob_config: ProblemConfig, raw_df: pd.DataFrame):
+def deploy_data_loader(prob_config: ProblemConfig, raw_df: pd.DataFrame, captured_data_dir = None):
 
     """
     Process data for deploy phase
@@ -195,7 +232,7 @@ def deploy_data_loader(prob_config: ProblemConfig, raw_df: pd.DataFrame):
     filename = generate_id(str(len(parquet_files)))
 
     # save request data for improving models
-    output_file_path = os.path.join(prob_config.captured_data_dir, f"{filename}.parquet")
+    output_file_path = os.path.join(captured_data_dir, f"{filename}.parquet")
     raw_df.to_parquet(output_file_path, index=False)
 
     return new_data
@@ -247,11 +284,13 @@ def captured_data_loader(prob_config: ProblemConfig):
             print(f"Error: Cannot open {file_path}, then remove it!")
             os.remove(file_path) 
         
-    captured_x = captured_x.drop_duplicates().reset_index(drop=True)
+    # captured_x = captured_x.drop_duplicates().reset_index(drop=True)
     new_data = captured_x[columns_to_keep]
     encoded_data = transform_new_data(prob_config , new_data)
 
     update_processor(prob_config = prob_config, captured_data = encoded_data)
+
+    raw_data_process(prob_config, flag = "update")
 
     new_data = preprocess_data(prob_config = prob_config, data = encoded_data, mode = 'deploy')
 

@@ -104,7 +104,7 @@ def transform_new_data(prob_config: ProblemConfig, new_df: pd.DataFrame):
     
     return new_df
 
-def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, mode='train'):
+def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, mode='train', flag = "new"):
         
         """
         Performing preprocessing data:
@@ -159,14 +159,22 @@ def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, mode='train'
 
             
 
-            if mode == 'train':
+            if mode == 'train' :
                 
                 old_label = data[[prob_config.target_col]]
                 old_features = data.drop([prob_config.target_col], axis=1)
-                scale_features = pd.DataFrame(scaler.fit_transform(old_features), columns=old_features.columns)
-                # Save the scaler to a file for later use in deployment
-                with open(save_path + f"{scaler_name}_scaler.pkl", 'wb') as f:
-                    pickle.dump(scaler, f)
+                if  flag == "new":
+                    scale_features = pd.DataFrame(scaler.fit_transform(old_features), columns=old_features.columns)
+                    # Save the scaler to a file for later use in deployment
+                    with open(save_path + f"{scaler_name}_scaler.pkl", 'wb') as f:
+                        pickle.dump(scaler, f)
+                elif  flag == "update":
+                    if not os.path.isfile(save_path + f"{scaler_name}_scaler.pkl"):
+                        raise ValueError(f"Not exist prefitted '{scaler_name}' scaler")
+                    # Load the saved scaler from the file
+                    with open(save_path + f"{scaler_name}_scaler.pkl", 'rb') as f:
+                        scaler = pickle.load(f)
+                    scale_features = pd.DataFrame(scaler.transform(old_features), columns=old_features.columns)
 
                 data = pd.concat([scale_features, old_label], axis=1)
 

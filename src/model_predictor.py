@@ -4,6 +4,7 @@ import yaml
 import time
 import mlflow
 import random
+import glob
 import logging
 import uvicorn
 import pickle
@@ -64,6 +65,10 @@ class ModelPredictor:
             with open(save_path + "label_mapping.pickle", 'rb') as f:
                 label_mapping = pickle.load(f)
             self.inverse_label_mapping = {v: k for k, v in label_mapping.items()}
+        
+        submit_num = glob.glob(os.path.join(self.prob_config.captured_data_dir, '*/'))
+        
+        self.path_save_captured = (self.prob_config.captured_data_dir / f"{len(submit_num)-1}")
 
 
     def detect_drift(self, drift_feature) -> int:
@@ -80,7 +85,7 @@ class ModelPredictor:
 
         raw_data = pd.DataFrame(data.rows, columns=data.columns)
 
-        feature_df = deploy_data_loader(prob_config = self.prob_config, raw_df = raw_data)
+        feature_df = deploy_data_loader(prob_config = self.prob_config, raw_df = raw_data, captured_data_dir = self.path_save_captured)
         
         prediction = self.model.predict(feature_df[self.columns_to_keep])
 

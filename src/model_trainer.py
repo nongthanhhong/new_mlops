@@ -23,12 +23,8 @@ from problem_config import (ProblemConfig,
 from utils import AppConfig
 
 def load(**kwargs):
-    config = {}
-    for k, v in kwargs.items():
-      if type(v) == dict:
-        v = load(**v)
-      config[k] = v
-    return config
+    return {k: load(**v) if isinstance(v, dict) else v for k, v in kwargs.items()}
+
 
 class Models:
     def __init__(self, prob_config):
@@ -42,24 +38,25 @@ class Models:
     
     def read_config(self, config_path):
         with open(config_path, "r") as f:
-            config = json.loads(f.read())
-
+            config = json.load(f)
         return load(**config)
-
-    def xgb_classifier(self):
-        config =  self.read_config(self.config_folder+ "/" + self.phase + "/" + self.prob + "/xgb.json")
-        print(config)
+    
+    def get_config(self, model_name):
+        config_path = f"{self.config_folder}/{self.phase}/{self.prob}/{model_name}.json"
+        config = self.read_config(config_path)
         self.EXPERIMENT_NAME = config["meta_data"]["model_name"]
         self.params = config["params"]
         self.train = config["train"]
+        return config
+
+    def xgb_classifier(self):
+        config = self.get_config("xgb")
         self.model = xgb.XGBClassifier(**self.params)
 
     def catboost_classifier(self):
-        config =  self.read_config(self.config_folder+ "/" + self.phase + "/" + self.prob + "/catboost.json")
-        self.EXPERIMENT_NAME = config["meta_data"]["model_name"]
-        self.params = config["params"]
-        self.train = config["train"]
+        config = self.get_config("catboost")
         self.model = catboost.CatBoostClassifier(**self.params)
+
 
 def show_proportion(task, labels):
     counter = Counter(labels)
@@ -118,7 +115,8 @@ class ModelTrainer:
             auc_score = roc_auc_score(dtest.get_label(), predictions)
 
         acc_score = accuracy_score(dtest.get_label(), predictions)
-        metrics = {"test_auc": auc_score, "test_acc": acc_score}
+        test_log_loss = log_loss(dtest.get_label(),  model.predict_proba(dtest))
+        metrics = {"test_auc": auc_score, "log_loss": test_log_loss, "test_acc": acc_score}
 
         logging.info(f"metrics: {metrics}")
         logging.info("\n" + classification_report(dtest.get_label(), predictions))
@@ -180,7 +178,9 @@ class ModelTrainer:
 
         
         acc_score = accuracy_score(dtest.get_label(), predictions)
-        metrics = {"test_auc": auc_score, "test_acc": acc_score}
+
+        test_log_loss = log_loss(dtest.get_label(),  model.predict_proba(dtest))
+        metrics = {"test_auc": auc_score, "log_loss": test_log_loss, "test_acc": acc_score}
 
         logging.info(f"metrics: {metrics}")
         logging.info("\n" + classification_report(dtest.get_label(), predictions))
