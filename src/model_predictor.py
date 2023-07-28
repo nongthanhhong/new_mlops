@@ -69,7 +69,7 @@ class ModelPredictor:
         submit_num = glob.glob(os.path.join(self.prob_config.captured_data_dir, '*/'))
         
         self.path_save_captured = (self.prob_config.captured_data_dir / f"{len(submit_num)}")
-        os.makedirs(os.path.dirname(self.path_save_captured), exist_ok=True)
+        os.makedirs(self.path_save_captured, exist_ok=True)
 
 
     def detect_drift(self, drift_feature) -> int:
