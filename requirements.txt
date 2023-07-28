@@ -15,3 +15,4 @@ tqdm
 joblib
 category_encoders
 adapt
+imbalanced-learn
