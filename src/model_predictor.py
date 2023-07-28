@@ -87,15 +87,11 @@ class ModelPredictor:
 
         data_time = time.time()
         raw_data = pd.DataFrame(data.rows, columns=data.columns)
-
         feature_df = deploy_data_loader(prob_config = self.prob_config, raw_df = raw_data, captured_data_dir = self.path_save_captured)
-
-        
         logging.info(f"Load data take {round((time.time() - data_time) * 1000, 0)} ms")
 
         predict_time = time.time()
         prediction = self.model.predict(feature_df[self.columns_to_keep])
-
         if self.prob_config.prob_id == 'prob-2' and self.prob_config.phase_id == "phase-2":
             '''
             transform numerical label to string label
@@ -103,13 +99,11 @@ class ModelPredictor:
             prediction_list = prediction.squeeze().tolist()
             prediction = [self.inverse_label_mapping[label] for label in prediction_list]
             prediction = np.array(prediction, dtype=str)
-        
         logging.info(f"Predict take {round((time.time() - predict_time) * 1000, 0)} ms")
 
         drift_detect_time = time.time()
         is_drifted = self.detect_drift(feature_df["feature19"])
         # is_drifted = 0
-
         logging.info(f"drift detect take {round((time.time() - drift_detect_time) * 1000, 0)} ms")
 
 
