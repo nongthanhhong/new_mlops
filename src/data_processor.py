@@ -193,13 +193,10 @@ def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, mode='train'
         with open(save_path + "types.json", 'r') as f:
             dtype = json.load(f)
 
-        if mode == 'deploy':
-            columns = data.columns
-        else:
-            columns = data.drop([prob_config.target_col], axis=1).columns
+        columns = data.columns if mode == 'deploy' else data.drop([prob_config.target_col], axis=1).columns
             
         for column in columns:
-            if column in dtype.keys():
+            if column in dtype:
                 data[column] = pd.to_numeric(data[column], errors='coerce')
                 # Fill missing values only once per column, instead of checking for missing values after each fill method
                 if data[column].isnull().any():
