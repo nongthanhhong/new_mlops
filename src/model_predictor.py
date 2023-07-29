@@ -69,7 +69,7 @@ class ModelPredictor:
         
         # submit_num = len(glob.glob(os.path.join(self.prob_config.captured_data_dir, '*/')))
         
-        self.path_save_captured = (self.prob_config.captured_data_dir / f"{2}")
+        self.path_save_captured = (self.prob_config.captured_data_dir / f"{3}")
         os.makedirs(self.path_save_captured, exist_ok=True)
 
         with open("./src/config_files/data_config.json", 'r') as f:
@@ -94,7 +94,7 @@ class ModelPredictor:
         curr_data = drift_feature
         wasserstein = wasserstein_distance(ref_data, curr_data)
 
-        return 1 if wasserstein > 0.25 else 0
+        return 1 if wasserstein > 0.05 else 0
 
     def predict(self, data: Data):
 
