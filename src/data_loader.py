@@ -3,6 +3,7 @@ sys.path.append('/mnt/e/mlops-marathon/new_mlops/utils')
 
 import os
 import glob
+import time
 import pickle
 import logging
 import argparse
@@ -205,7 +206,7 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
         
     return dtrain, dval, dtest, test_x
 
-def deploy_data_loader(prob_config: ProblemConfig, raw_df: pd.DataFrame, captured_data_dir = None):
+def deploy_data_loader(prob_config: ProblemConfig, raw_df: pd.DataFrame, captured_data_dir = None, id = None, scaler = None, encoder = None):
 
     """
     Process data for deploy phase
@@ -223,17 +224,28 @@ def deploy_data_loader(prob_config: ProblemConfig, raw_df: pd.DataFrame, capture
     columns_to_keep = prob_config.categorical_cols + prob_config.numerical_cols
     new_data = raw_df[columns_to_keep]
 
-    encoded_data = transform_new_data(prob_config , new_data)
+    transform_new_data_time = time.time()
+    encoded_data = transform_new_data(prob_config , new_data, encoder = encoder)
+    logging.info(f"transform_new_data_time data take {round((time.time() - transform_new_data_time) * 1000, 0)} ms")
 
-    new_data = preprocess_data(prob_config = prob_config, data = encoded_data, mode = 'deploy')
+    
+    preprocess_data_time = time.time()
+    new_data = preprocess_data(prob_config = prob_config, data = encoded_data, mode = 'deploy', deploy_scaler = scaler)
+    logging.info(f"preprocess_data_time data take {round((time.time() - preprocess_data_time) * 1000, 0)} ms")
+
     
     #generate id for save file
-    parquet_files = glob.glob(os.path.join(prob_config.captured_data_dir, '*.parquet'))
-    filename = generate_id(str(len(parquet_files)))
+    generate_id_time = time.time()
+    # parquet_files = glob.glob(os.path.join(prob_config.captured_data_dir, '*.parquet'))
+    # filename = generate_id(str(len(parquet_files)))
+    filename = generate_id(id)
+    logging.info(f"generate_id_time data take {round((time.time() - generate_id_time) * 1000, 0)} ms")
 
     # save request data for improving models
+    save_data_time = time.time()
     output_file_path = os.path.join(captured_data_dir, f"{filename}.parquet")
-    raw_df.to_parquet(output_file_path, index=False)
+    raw_df.to_parquet(output_file_path, index=False, engine='pyarrow', compression='snappy' )
+    logging.info(f"save_data_time data take {round((time.time() - save_data_time) * 1000, 0)} ms")
 
     return new_data
 

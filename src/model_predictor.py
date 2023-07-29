@@ -4,6 +4,7 @@ import yaml
 import time
 import mlflow
 import random
+import json
 import glob
 import logging
 import uvicorn
@@ -66,10 +67,25 @@ class ModelPredictor:
                 label_mapping = pickle.load(f)
             self.inverse_label_mapping = {v: k for k, v in label_mapping.items()}
         
-        submit_num = glob.glob(os.path.join(self.prob_config.captured_data_dir, '*/'))
+        # submit_num = len(glob.glob(os.path.join(self.prob_config.captured_data_dir, '*/')))
         
-        self.path_save_captured = (self.prob_config.captured_data_dir / f"{len(submit_num)}")
+        self.path_save_captured = (self.prob_config.captured_data_dir / f"{0}")
         os.makedirs(self.path_save_captured, exist_ok=True)
+
+        with open("./src/config_files/data_config.json", 'r') as f:
+            config = json.load(f)
+        save_path = f"./prob_resource/{ self.prob_config.phase_id}/{ self.prob_config.prob_id}/"
+        scaler_name = config['scale_data']['method']
+        if not os.path.isfile(save_path + f"{scaler_name}_scaler.pkl"):
+            raise ValueError(f"Not exist prefitted '{scaler_name}' scaler")
+        # Load the saved scaler from the file
+        with open(save_path + f"{scaler_name}_scaler.pkl", 'rb') as f:
+            self.scaler = pickle.load(f)
+        
+        save_path = f"./prob_resource/{self.prob_config.phase_id}/{self.prob_config.prob_id}/"
+        with open(save_path + "encoder.pkl", 'rb') as f:
+            self.encoder = pickle.load(f)
+    
 
 
     def detect_drift(self, drift_feature) -> int:
@@ -90,7 +106,7 @@ class ModelPredictor:
         logging.info(f"Load data take {round((time.time() - data_time) * 1000, 0)} ms")
 
         process_data_time = time.time()
-        feature_df = deploy_data_loader(prob_config = self.prob_config, raw_df = raw_data, captured_data_dir = self.path_save_captured)
+        feature_df = deploy_data_loader(prob_config = self.prob_config, raw_df = raw_data, captured_data_dir = self.path_save_captured, id = data.id, scaler=self.scaler, encoder=self.encoder)
         logging.info(f"Process data take {round((time.time() - process_data_time) * 1000, 0)} ms")
 
         predict_time = time.time()

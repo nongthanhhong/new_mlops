@@ -5,6 +5,7 @@ sys.path.append('/mnt/e/mlops-marathon/new_mlops/utils')
 import os
 import json
 import pickle
+import time
 import logging
 import numpy as np
 import pandas as pd
@@ -73,7 +74,7 @@ def train_encoder(prob_config: ProblemConfig, df: pd.DataFrame):
     
     return df
 
-def transform_new_data(prob_config: ProblemConfig, new_df: pd.DataFrame):
+def transform_new_data(prob_config: ProblemConfig, new_df: pd.DataFrame, encoder = None):
     """
     Performing transform new input data with categorical columns to numerical:
     
@@ -88,23 +89,20 @@ def transform_new_data(prob_config: ProblemConfig, new_df: pd.DataFrame):
     column = prob_config.raw_categorical_cols
     
     # Load the saved encoder from disk
-    save_path = f"./prob_resource/{prob_config.phase_id}/{prob_config.prob_id}/"
-    with open(save_path + "encoder.pkl", 'rb') as f:
-        encoder = pickle.load(f)
     
     # Transform the new data using the fitted encoder
     one_hot_df = pd.DataFrame(encoder.transform(new_df[column]),
                               columns= column)
     
     # Drop the original categorical column
-    new_df = new_df.drop(column, axis=1)
+    new_df.drop(column, axis=1, inplace=True)
     
     # Concatenate the original DataFrame with the one-hot encoded DataFrame
     new_df = pd.concat([new_df, one_hot_df], axis=1)
     
     return new_df
 
-def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, mode='train', flag = "new"):
+def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, mode='train', flag = "new", deploy_scaler = None):
         
         """
         Performing preprocessing data:
@@ -130,6 +128,8 @@ def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, mode='train'
 
         save_path = f"./prob_resource/{prob_config.phase_id}/{prob_config.prob_id}/"
 
+        preprocess_missing_data_time = time.time()
+
         # Handle missing values
         if config['missing_values']['method'] == 'drop':
             data = data.dropna()
@@ -141,52 +141,54 @@ def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, mode='train'
                 data = data.fillna(data.median())
             elif isinstance(fill_value, (int, float)):
                 data = data.fillna(fill_value)
-
-            data = data.fillna(method='ffill')
-            data = data.fillna(method='bfill')
-            data = data.fillna(0)
+            
+        # Fill missing values only once, instead of checking for missing values after each fill method
+        data.fillna(method='ffill', inplace=True)
+        data.fillna(method='bfill', inplace=True)
+        data.fillna(0, inplace=True)
+            
+        logging.info(f"preprocess_missing_data_time data take {round((time.time() - preprocess_missing_data_time) * 1000, 0)} ms")
         
         # Scale data
-        if config['scale_data']:
-            scaler = None
-            scaler_name = config['scale_data']['method']
-            if scaler_name == 'standard':
-                scaler = StandardScaler()
-            elif scaler_name == 'minmax':
-                scaler = MinMaxScaler()
-            elif scaler_name == 'robust':
-                scaler = RobustScaler()
 
-            
-
-            if mode == 'train' :
-                
-                old_label = data[[prob_config.target_col]]
-                old_features = data.drop([prob_config.target_col], axis=1)
-                if  flag == "new":
-                    scale_features = pd.DataFrame(scaler.fit_transform(old_features), columns=old_features.columns)
-                    # Save the scaler to a file for later use in deployment
-                    with open(save_path + f"{scaler_name}_scaler.pkl", 'wb') as f:
-                        pickle.dump(scaler, f)
-                elif  flag == "update":
-                    if not os.path.isfile(save_path + f"{scaler_name}_scaler.pkl"):
-                        raise ValueError(f"Not exist prefitted '{scaler_name}' scaler")
-                    # Load the saved scaler from the file
-                    with open(save_path + f"{scaler_name}_scaler.pkl", 'rb') as f:
-                        scaler = pickle.load(f)
-                    scale_features = pd.DataFrame(scaler.transform(old_features), columns=old_features.columns)
-
-                data = pd.concat([scale_features, old_label], axis=1)
-
-            elif mode == 'deploy':
+        Scale_data_time = time.time()
+        if mode == 'train' :
+            if config['scale_data']:
+                scaler = None
+                scaler_name = config['scale_data']['method']
+                if scaler_name == 'standard':
+                    scaler = StandardScaler()
+                elif scaler_name == 'minmax':
+                    scaler = MinMaxScaler()
+                elif scaler_name == 'robust':
+                    scaler = RobustScaler()
+                    
+            old_label = data[[prob_config.target_col]]
+            old_features = data.drop([prob_config.target_col], axis=1)
+            if  flag == "new":
+                scale_features = pd.DataFrame(scaler.fit_transform(old_features), columns=old_features.columns)
+                # Save the scaler to a file for later use in deployment
+                with open(save_path + f"{scaler_name}_scaler.pkl", 'wb') as f:
+                    pickle.dump(scaler, f)
+            elif  flag == "update":
                 if not os.path.isfile(save_path + f"{scaler_name}_scaler.pkl"):
                     raise ValueError(f"Not exist prefitted '{scaler_name}' scaler")
                 # Load the saved scaler from the file
                 with open(save_path + f"{scaler_name}_scaler.pkl", 'rb') as f:
                     scaler = pickle.load(f)
-                data = pd.DataFrame(scaler.transform(data), columns=data.columns)
+                scale_features = pd.DataFrame(scaler.transform(old_features), columns=old_features.columns)
+
+            data = pd.concat([scale_features, old_label], axis=1)
+
+        elif mode == 'deploy':
+            data = pd.DataFrame(deploy_scaler.transform(data), columns=data.columns)
+            
+        logging.info(f"Scale_data_time data take {round((time.time() - Scale_data_time) * 1000, 0)} ms")
+        
+        
         
         # Handle the wrong datatype in each column
+        wrong_data_time = time.time()
 
         with open(save_path + "types.json", 'r') as f:
             dtype = json.load(f)
@@ -199,13 +201,15 @@ def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, mode='train'
         for column in columns:
             if column in dtype.keys():
                 data[column] = pd.to_numeric(data[column], errors='coerce')
-                #if are there any not in numerical type, then replace with value of row before, after and 0
-                data[column] = data[column].fillna(method='ffill')
-                data[column] = data[column].fillna(method='bfill')
-                data[column] = data[column].fillna(0)
-
+                # Fill missing values only once per column, instead of checking for missing values after each fill method
+                if data[column].isnull().any():
+                    data[column].fillna(method='ffill', inplace=True)
+                    data[column].fillna(method='bfill', inplace=True)
+                    data[column].fillna(0, inplace=True)
                 data[column] = data[column].astype(dtype[column])
-        
+                        
+        logging.info(f"wrong_data_time data take {round((time.time() - wrong_data_time) * 1000, 0)} ms")
+
         return data 
 
 def feature_selection(data_x: pd.DataFrame, data_y: pd.DataFrame, captured_x: pd.DataFrame):

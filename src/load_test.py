@@ -21,7 +21,7 @@ def send_data_to_server(data, url):
 
 #take list file 
 
-url = 'http://localhost:5040/phase-2/prob-2/predict'
+url = 'http://localhost:8000/phase-2/prob-2/predict'
 root_path = "data_warehouse/captured_data/phase-2/prob-2/*.parquet"
 
 len = 0
@@ -46,6 +46,9 @@ for file_path in tqdm(glob.glob(root_path), ncols=100, desc ="Loading...", unit 
         # Check the response status code and content
         print(response.status_code)
         print(response.json()["id"])
+
+        if id == 10:
+             break
         
 
 
