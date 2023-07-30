@@ -92,10 +92,12 @@ class ModelPredictor:
         # watch drift between coming requests and training data
         ref_data = self.drift_column
         curr_data = drift_feature
-        _, p_value = ks_2samp(ref_data, curr_data)
-        # wasserstein = wasserstein_distance(ref_data, curr_data)
 
-        return 1 if p_value < 0.9 else 0
+        # _, p_value = ks_2samp(ref_data, curr_data)
+        # return 1 if p_value < 0.9 else 0
+    
+        wasserstein = wasserstein_distance(ref_data, curr_data)
+        return 1 if wasserstein > 0.33 else 0
 
     def predict(self, data: Data):
 

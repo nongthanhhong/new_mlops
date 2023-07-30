@@ -129,7 +129,7 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
         logging.info("Calculating sample_weight...")
         
     
-        model = KLIEP()
+        model = KLIEP(kernel='additive_chi2')
         model.fit(X=data_x.to_numpy(), y=data_y.to_numpy(), Xt=captured_x.to_numpy())
         train_weight = model.predict_weights(data_x.to_numpy())
 
