@@ -165,27 +165,25 @@ def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, mode='train'
                     
             old_label = data[[prob_config.target_col]]
             old_features = data.drop([prob_config.target_col], axis=1)
-            if  flag == "new":
-                scale_features = pd.DataFrame(scaler.fit_transform(old_features), columns=old_features.columns)
-                # Save the scaler to a file for later use in deployment
-                with open(save_path + f"{scaler_name}_scaler.pkl", 'wb') as f:
-                    pickle.dump(scaler, f)
-            elif  flag == "update":
-                if not os.path.isfile(save_path + f"{scaler_name}_scaler.pkl"):
-                    raise ValueError(f"Not exist prefitted '{scaler_name}' scaler")
-                # Load the saved scaler from the file
-                with open(save_path + f"{scaler_name}_scaler.pkl", 'rb') as f:
-                    scaler = pickle.load(f)
-                scale_features = pd.DataFrame(scaler.transform(old_features), columns=old_features.columns)
-
+            # if  flag == "new":
+            scale_features = pd.DataFrame(scaler.fit_transform(old_features), columns=old_features.columns)
+            # Save the scaler to a file for later use in deployment
+            with open(save_path + f"{scaler_name}_scaler.pkl", 'wb') as f:
+                pickle.dump(scaler, f)
+                
+        elif  flag == "update":
+            if not os.path.isfile(save_path + f"{scaler_name}_scaler.pkl"):
+                raise ValueError(f"Not exist prefitted '{scaler_name}' scaler")
+            # Load the saved scaler from the file
+            with open(save_path + f"{scaler_name}_scaler.pkl", 'rb') as f:
+                scaler = pickle.load(f)
+            scale_features = pd.DataFrame(scaler.transform(old_features), columns=old_features.columns)
             data = pd.concat([scale_features, old_label], axis=1)
 
         elif mode == 'deploy':
             data = pd.DataFrame(deploy_scaler.transform(data), columns=data.columns)
             
         logging.info(f"Scale_data_time data take {round((time.time() - Scale_data_time) * 1000, 0)} ms")
-        
-        
         
         # Handle the wrong datatype in each column
         wrong_data_time = time.time()

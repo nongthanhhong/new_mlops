@@ -131,7 +131,10 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
     
         model = KLIEP()
         model.fit(X=data_x.to_numpy(), y=data_y.to_numpy(), Xt=captured_x.to_numpy())
-        train_weight = model.predict(data_x.to_numpy())
+        train_weight = model.predict_weights(data_x.to_numpy())
+
+        print(train_weight)
+        return
 
         epsilon = 1e-6
         train_weight = [max(w, epsilon) for w in train_weight]
@@ -275,34 +278,59 @@ def captured_data_loader(prob_config: ProblemConfig):
 
     if os.path.isfile(prob_config.captured_data_dir / "total_data.parquet"):
         os.remove(prob_config.captured_data_dir / "total_data.parquet") 
+    
+    with open("./src/config_files/data_config.json", 'r') as f:
+        config = json.load(f)
+    save_path = f"./prob_resource/{ prob_config.phase_id}/{prob_config.prob_id}/"
+    scaler_name = config['scale_data']['method']
+    
+    save_path = f"./prob_resource/{ prob_config.phase_id}/{ prob_config.prob_id}/"
+    with open(save_path + "encoder.pkl", 'rb') as f:
+        encoder = pickle.load(f)
 
     captured_x = pd.DataFrame()
 
-    for file_path in tqdm(prob_config.captured_data_dir.glob("*.parquet"), ncols=100, desc ="Loading...", unit ="file"):
+    # Disable all logging calls
+    logging.disable(logging.CRITICAL)
 
-        try:
-            captured_data = pd.read_parquet(file_path)
-            captured_x = pd.concat([captured_x, captured_data])
+    for idx in [4]:
 
-            new_data = captured_data[columns_to_keep]
-            encoded_data = transform_new_data(prob_config , new_data)
-            new_data = preprocess_data(prob_config = prob_config, data = encoded_data, mode = 'deploy')
-            new_data.to_parquet(prob_config.processed_captured_data_dir / file_path.name)
-            # os.remove(file_path) 
-        
-        except:
-            print(f"Error: Cannot open {file_path}, then remove it!")
-            os.remove(file_path) 
-        
+        path_save = os.path.join(prob_config.captured_data_dir,str(idx))
+
+        for file_path in tqdm(glob.glob(path_save + "/*.parquet"), ncols=100, desc ="Loading...", unit ="file"):
+
+            try:
+                captured_data = pd.read_parquet(file_path)
+                captured_x = pd.concat([captured_x, captured_data])
+
+                # new_data = captured_data[columns_to_keep]
+                # encoded_data = transform_new_data(prob_config , new_data)
+                # new_data = preprocess_data(prob_config = prob_config, data = encoded_data, mode = 'deploy')
+                # new_data.to_parquet(prob_config.processed_captured_data_dir / file_path.name)
+                # os.remove(file_path) 
+            
+            except:
+                print(f"Error: Cannot open {file_path}, then remove it!")
+                os.remove(file_path) 
+    
+    # Enable all logging calls
+    logging.disable(logging.NOTSET)
+
     # captured_x = captured_x.drop_duplicates().reset_index(drop=True)
     new_data = captured_x[columns_to_keep]
-    encoded_data = transform_new_data(prob_config , new_data)
+    encoded_data = transform_new_data(prob_config , new_data, encoder=encoder)
 
     update_processor(prob_config = prob_config, captured_data = encoded_data)
 
     raw_data_process(prob_config, flag = "update")
+    
+    if not os.path.isfile(save_path + f"{scaler_name}_scaler.pkl"):
+        raise ValueError(f"Not exist prefitted '{scaler_name}' scaler")
+    # Load the saved scaler from the file
+    with open(save_path + f"{scaler_name}_scaler.pkl", 'rb') as f:
+        scaler = pickle.load(f)
 
-    new_data = preprocess_data(prob_config = prob_config, data = encoded_data, mode = 'deploy')
+    new_data = preprocess_data(prob_config = prob_config, data = encoded_data, mode = 'deploy', deploy_scaler=scaler)
 
     new_data.to_parquet(prob_config.captured_x_path)
 
