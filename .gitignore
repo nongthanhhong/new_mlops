@@ -199,3 +199,4 @@ mlruns
 catboost_info
 
 test.py
+*.parquet

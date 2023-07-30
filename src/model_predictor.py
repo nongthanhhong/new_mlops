@@ -16,7 +16,7 @@ import pandas as pd
 from pydantic import BaseModel
 from fastapi import FastAPI, Request
 from utils import AppConfig, AppPath
-from scipy.stats import wasserstein_distance
+from scipy.stats import wasserstein_distance, ks_2samp
 from data_loader import deploy_data_loader, load_data
 from problem_config import ProblemConst, create_prob_config
 # import httpx
@@ -92,9 +92,10 @@ class ModelPredictor:
         # watch drift between coming requests and training data
         ref_data = self.drift_column
         curr_data = drift_feature
-        wasserstein = wasserstein_distance(ref_data, curr_data)
+        _, p_value = ks_2samp(ref_data, curr_data)
+        # wasserstein = wasserstein_distance(ref_data, curr_data)
 
-        return 1 if wasserstein > 0.421 else 0
+        return 1 if p_value < 0.5 else 0
 
     def predict(self, data: Data):
 

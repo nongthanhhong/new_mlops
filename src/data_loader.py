@@ -218,8 +218,6 @@ def deploy_data_loader(prob_config: ProblemConfig, raw_df: pd.DataFrame, capture
     Returns:
     pandas.DataFrame: processed data for predict
     """
-
-    
     
     columns_to_keep = prob_config.categorical_cols + prob_config.numerical_cols
     new_data = raw_df[columns_to_keep]
