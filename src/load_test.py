@@ -22,7 +22,7 @@ def send_data_to_server(data, url):
 #take list file 
 
 url = 'http://localhost:5040/phase-2/prob-2/predict'
-root_path = "/mnt/e/mlops-marathon/new_mlops/data_warehouse/captured_data/phase-2/prob-2/0/*.parquet"
+root_path = "data_warehouse/captured_data/phase-2/prob-2/0/*.parquet"
 
 len = 0
 drift = 0
