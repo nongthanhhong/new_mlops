@@ -50,8 +50,8 @@ for file_path in tqdm(glob.glob(root_path), ncols=100, desc ="Loading...", unit 
         if response.json()["drift"] == 1:
              drift +=1
 
-        if id == 10:
-             break
+        # if id == 10:
+        #      break
 print("num drift: ", drift)
         
 
