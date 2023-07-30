@@ -69,7 +69,7 @@ class ModelPredictor:
         
         # submit_num = len(glob.glob(os.path.join(self.prob_config.captured_data_dir, '*/')))
         
-        self.path_save_captured = (self.prob_config.captured_data_dir / f"{13}")
+        self.path_save_captured = (self.prob_config.captured_data_dir / f"{14}")
         os.makedirs(self.path_save_captured, exist_ok=True)
 
         with open("./src/config_files/data_config.json", 'r') as f:
