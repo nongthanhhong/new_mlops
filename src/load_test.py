@@ -3,6 +3,7 @@ import requests
 from tqdm import tqdm
 import glob
 import json
+import time
 from threading import Thread
 
 # Make sure to have the required libraries installed
@@ -26,6 +27,8 @@ root_path = "data_warehouse/captured_data/phase-2/prob-2/0/*.parquet"
 
 len = 0
 drift = 0
+
+start_time = time.time()
 for file_path in tqdm(glob.glob(root_path), ncols=100, desc ="Loading...", unit ="file"):
 
     # for i in range(100):
@@ -52,7 +55,7 @@ for file_path in tqdm(glob.glob(root_path), ncols=100, desc ="Loading...", unit 
 
         # if id == 10:
         #      break
-print("num drift: ", drift)
+print(f"Request take: {(time.time - start_time)*1000} ms\nnum drift: {drift}")
         
 
 
