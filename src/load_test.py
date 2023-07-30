@@ -16,7 +16,7 @@ def read_parquet(file):
 def send_data_to_server(data, url):
     headers = {'Content-type': 'application/json'}
     data_json = json.dumps(data)
-    async response = requests.post(url, data=data_json, headers=headers)
+    response = requests.post(url, data=data_json, headers=headers)
 
     return response
 
