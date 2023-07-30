@@ -55,7 +55,7 @@ for file_path in tqdm(glob.glob(root_path), ncols=100, desc ="Loading...", unit 
 
         # if id == 10:
         #      break
-print(f"Request take: {(time.time - start_time)*1000} ms\nnum drift: {drift}")
+print(f"Request take: {(time.time() - start_time)*1000} ms\nnum drift: {drift}")
         
 
 
