@@ -245,7 +245,7 @@ def deploy_data_loader(prob_config: ProblemConfig, raw_df: pd.DataFrame, capture
     # save request data for improving models
     save_data_time = time.time()
     output_file_path = os.path.join(captured_data_dir, f"{filename}.parquet")
-    raw_df.to_parquet(output_file_path, index=False, engine='pyarrow', compression='snappy' )
+    raw_df.to_parquet(output_file_path, index=False, engine='pyarrow', compression='snappy')
     logging.info(f"save_data_time data take {round((time.time() - save_data_time) * 1000, 0)} ms")
 
     return new_data

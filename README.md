@@ -27,6 +27,7 @@
         ```bash
         python ./src/data_loader.py --phase-id phase-1 --prob-id prob-1
         python ./src/data_loader.py --phase-id phase-2 --prob-id prob-1
+        python ./src/data_loader.py --phase-id phase-3 --prob-id prob-1
         ```
 
     -   After processing data, `./data_warehouse/processed_data` dir should look like
@@ -49,21 +50,23 @@
         export MLFLOW_TRACKING_URI=http://localhost:5040
         python src/model_trainer.py --phase-id phase-1 --prob-id prob-1
         python src/model_trainer.py --phase-id phase-2 --prob-id prob-1 
+        python src/model_trainer.py --phase-id phase-3 --prob-id prob-1 
         
         ```
 
     -   Register model: - Go to mlflow UI at <http://localhost:5040> and 
                         - Register a new model named **phase1-prob1** & **phase1-prob2**
                         - Register a new model named **phase2-prob1** & **phase2-prob2**
+                        - Register a new model named **phase3-prob1** & **phase3-prob2**
 
 4.  Deploy model predictor
 
     -   Create model config at `src/config_files/model_config/phase-*/prob-*/model-1.yaml` with content: 
 
         ```yaml
-        phase_id: "phase-1" OR "phase-2"
+        phase_id: "phase-1" OR "phase-2" OR "phase-3"
         prob_id: "prob-1" OR "prob-2"
-        model_name: "phase1-prob1" OR "phase2-prob1"
+        model_name: "phase1-prob1" OR "phase2-prob1" OR "phase3-prob1"
         model_version: "1"
         ```
     -   Test model predictor
@@ -130,8 +133,10 @@
 
         ```bash
         python src/captured_data_processor.py --phase-id phase-2 --prob-id prob-1
+        python src/captured_data_processor.py --phase-id phase-3 --prob-id prob-1
 
         python src/model_trainer.py --phase-id phase-2 --prob-id prob-1 --add-captured-data True
+        python src/model_trainer.py --phase-id phase-3 --prob-id prob-1 --add-captured-data True
         ```
 6.  Teardown
 

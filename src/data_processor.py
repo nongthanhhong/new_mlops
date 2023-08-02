@@ -95,10 +95,11 @@ def transform_new_data(prob_config: ProblemConfig, new_df: pd.DataFrame, encoder
                               columns= column)
     
     # Drop the original categorical column
-    new_df.drop(column, axis=1, inplace=True)
-    
+    drop_df = new_df.copy()
+    drop_df.drop(column, axis=1, inplace=True)
+
     # Concatenate the original DataFrame with the one-hot encoded DataFrame
-    new_df = pd.concat([new_df, one_hot_df], axis=1)
+    new_df = pd.concat([drop_df, one_hot_df], axis=1)
     
     return new_df
 
@@ -136,15 +137,15 @@ def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, mode='train'
         elif config['missing_values']['method'] == 'fill':
             fill_value = config['missing_values']['fill_value']
             if fill_value == 'mean':
-                data = data.fillna(data.mean())
+                data.fillna(np.mean(data), inplace=True)
             elif fill_value == 'median':
-                data = data.fillna(data.median())
-            elif isinstance(fill_value, (int, float)):
-                data = data.fillna(fill_value)
+                data.fillna(np.median(data), inplace=True)
+            else:
+                data.fillna(fill_value, inplace=True)
             
         # Fill missing values only once, instead of checking for missing values after each fill method
-        data.fillna(method='ffill', inplace=True)
-        data.fillna(method='bfill', inplace=True)
+        # data.fillna(method='ffill', inplace=True)
+        # data.fillna(method='bfill', inplace=True)
         data.fillna(0, inplace=True)
             
         logging.info(f"preprocess_missing_data_time data take {round((time.time() - preprocess_missing_data_time) * 1000, 0)} ms")
@@ -186,24 +187,26 @@ def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, mode='train'
         logging.info(f"Scale_data_time data take {round((time.time() - Scale_data_time) * 1000, 0)} ms")
         
         # Handle the wrong datatype in each column
-        wrong_data_time = time.time()
+        wrong_data_type_time = time.time()
 
-        with open(save_path + "types.json", 'r') as f:
-            dtype = json.load(f)
-
-        columns = data.columns if mode == 'deploy' else data.drop([prob_config.target_col], axis=1).columns
+        # Use the apply() method to convert each column to the correct data type.
+        data = data.apply(pd.to_numeric, errors='coerce')
+        data.fillna(0, inplace=True)
             
-        for column in columns:
-            if column in dtype:
-                data[column] = pd.to_numeric(data[column], errors='coerce')
-                # Fill missing values only once per column, instead of checking for missing values after each fill method
-                if data[column].isnull().any():
-                    data[column].fillna(method='ffill', inplace=True)
-                    data[column].fillna(method='bfill', inplace=True)
-                    data[column].fillna(0, inplace=True)
-                data[column] = data[column].astype(dtype[column])
+        # with open(save_path + "types.json", 'r') as f:
+            # dtype = json.load(f)
+        # columns = data.columns if mode == 'deploy' else data.drop([prob_config.target_col], axis=1).columns
+        # for column in columns:
+        #     if column in dtype:
+        #         data[column] = pd.to_numeric(data[column], errors='coerce')
+        #         # Fill missing values only once per column, instead of checking for missing values after each fill method
+        #         if data[column].isnull().any():
+        #             data[column].fillna(method='ffill', inplace=True)
+        #             data[column].fillna(method='bfill', inplace=True)
+        #             data[column].fillna(0, inplace=True)
+        #         data[column] = data[column].astype(dtype[column])
                         
-        logging.info(f"wrong_data_time data take {round((time.time() - wrong_data_time) * 1000, 0)} ms")
+        logging.info(f"wrong_data_type_time data take {round((time.time() - wrong_data_type_time) * 1000, 0)} ms")
 
         return data 
 
@@ -239,7 +242,6 @@ def feature_selection(data_x: pd.DataFrame, data_y: pd.DataFrame, captured_x: pd
     selected_columns = {k: v for k, v in sorted_score[:]}
 
     return selected_columns.keys()
-
 
 def wasserstein_calculator(data1, data2):
 

@@ -3,8 +3,9 @@ import os
 import yaml
 import time
 import mlflow
-import random
+import random 
 import json
+import io
 import glob
 import logging
 import uvicorn
@@ -15,6 +16,7 @@ from utils import *
 import pandas as pd
 from pydantic import BaseModel
 from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from utils import AppConfig, AppPath
 from scipy.stats import wasserstein_distance, ks_2samp
 from data_loader import deploy_data_loader, load_data
@@ -61,15 +63,15 @@ class ModelPredictor:
         train_data, _ = load_data(self.prob_config)
         self.drift_column = train_data["feature19"]
 
-        if self.prob_config.prob_id == 'prob-2' and self.prob_config.phase_id == "phase-2":
+        if self.prob_config.prob_id == 'prob-2' and self.prob_config.phase_id == "phase-3":
             save_path = f"./prob_resource/{self.prob_config.phase_id}/{self.prob_config.prob_id}/"
             with open(save_path + "label_mapping.pickle", 'rb') as f:
                 label_mapping = pickle.load(f)
             self.inverse_label_mapping = {v: k for k, v in label_mapping.items()}
         
-        # submit_num = len(glob.glob(os.path.join(self.prob_config.captured_data_dir, '*/')))
+        submit_num = len(glob.glob(os.path.join(self.prob_config.captured_data_dir, '*/')))
         
-        self.path_save_captured = (self.prob_config.captured_data_dir / f"{14}")
+        self.path_save_captured = (self.prob_config.captured_data_dir / f"{submit_num}")
         os.makedirs(self.path_save_captured, exist_ok=True)
 
         with open("./src/config_files/data_config.json", 'r') as f:
@@ -86,8 +88,6 @@ class ModelPredictor:
         with open(save_path + "encoder.pkl", 'rb') as f:
             self.encoder = pickle.load(f)
     
-
-
     def detect_drift(self, drift_feature) -> int:
         # watch drift between coming requests and training data
         ref_data = self.drift_column
@@ -103,13 +103,19 @@ class ModelPredictor:
 
         start_time = time.time()
 
-
         data_time = time.time()
         raw_data = pd.DataFrame(data.rows, columns=data.columns)
         logging.info(f"Load data take {round((time.time() - data_time) * 1000, 0)} ms")
 
         process_data_time = time.time()
-        feature_df = deploy_data_loader(prob_config = self.prob_config, raw_df = raw_data, captured_data_dir = self.path_save_captured, id = data.id, scaler=self.scaler, encoder=self.encoder)
+        # Use a caching mechanism to store the results of previous inferences.
+        # if raw_data.values.shape not in self.cached_features:
+        #     feature_df = deploy_data_loader(prob_config=self.prob_config, raw_df=raw_data, captured_data_dir=self.path_save_captured, id=data.id, scaler=self.scaler, encoder=self.encoder)
+        #     self.cached_features[raw_data.values.shape] = feature_df
+        # else:
+        #     feature_df = self.cached_features[raw_data.values.shape]
+
+        feature_df = deploy_data_loader(prob_config=self.prob_config, raw_df=raw_data, captured_data_dir=self.path_save_captured, id=data.id, scaler=self.scaler, encoder=self.encoder)
         logging.info(f"Process data take {round((time.time() - process_data_time) * 1000, 0)} ms")
 
         predict_time = time.time()
@@ -117,7 +123,7 @@ class ModelPredictor:
         logging.info(f"Predict take {round((time.time() - predict_time) * 1000, 0)} ms")
 
         transform_predict_time = time.time()
-        if self.prob_config.prob_id == 'prob-2' and self.prob_config.phase_id == "phase-2":
+        if self.prob_config.prob_id == 'prob-2' and self.prob_config.phase_id == "phase-3":
             '''
             transform numerical label to string label
             '''
@@ -125,22 +131,26 @@ class ModelPredictor:
             prediction = [self.inverse_label_mapping[label] for label in prediction_list]
             prediction = np.array(prediction, dtype=str)
         logging.info(f"Transform predict take {round((time.time() - transform_predict_time) * 1000, 0)} ms")
-            
+
+
 
         drift_detect_time = time.time()
         is_drifted = self.detect_drift(feature_df["feature19"])
         # is_drifted = 0
         logging.info(f"drift detect take {round((time.time() - drift_detect_time) * 1000, 0)} ms")
 
-
-
         run_time = round((time.time() - start_time) * 1000, 0)
         logging.info(f"total prediction takes {run_time} ms")
-        return {
+        
+
+        # compress_start_time = time.time()
+        return JSONResponse({
             "id": data.id,
             "predictions": prediction.tolist(),
             "drift": is_drifted,
-        }
+            "inference time": run_time
+        })
+
 
 
 class PredictorApi:
@@ -175,10 +185,22 @@ class PredictorApi:
 
             self._log_request(request)
 
+
             # with concurrent.futures.ProcessPoolExecutor(max_workers=4) as executor:
             #     response = executor.submit(self.predictor_2.predict, data).result()
 
             response =  self.predictor_2.predict(data)
+            # try:
+            #     start_time = response["time start compress"]
+            #     logging.info(f"Compress time: {round((time.time() - start_time) * 1000, 0)} ms")
+            #     response["start sent time"] = time.time()
+            # except:
+            #     body = response.body
+            #     data = json.loads(body)
+            #     start_time = data["time start compress"]
+            #     logging.info(f"Compress time: {round((time.time() - start_time) * 1000, 0)} ms")
+            #     data.update({"start sent time":  time.time()})
+            #     response = JSONResponse(data)
 
             self._log_response(response)
             return response

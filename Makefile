@@ -47,8 +47,8 @@ nginx_up:
 	export MLFLOW_TRACKING_URI=http://localhost:5000
 	
 	bash platform/nginx_deploy.sh run_nginx \
-							src/config_files/model_config/phase-2/prob-1/model-1.yaml \
-							src/config_files/model_config/phase-2/prob-2/model-1.yaml \
+							src/config_files/model_config/phase-3/prob-1/model-1.yaml \
+							src/config_files/model_config/phase-3/prob-2/model-1.yaml \
 							5040
 
 nginx_down:

@@ -1,4 +1,5 @@
 
 # !captured_data/.gitkeep
 */*/processed/*
+*/*/*/*.parquet
 */*/*.parquet

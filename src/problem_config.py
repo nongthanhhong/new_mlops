@@ -5,9 +5,9 @@ from utils import *
 
 
 class ProblemConst:
-    PHASE = "phase-2"
+    PHASE = "phase-3"
     PROB1 = "prob-1"
-    PHASE = "phase-2"
+    PHASE = "phase-3"
     PROB2 = "prob-2"
 
 
@@ -52,7 +52,7 @@ def create_prob_config(phase_id: str, prob_id: str) -> ProblemConfig:
     prob_config.prob_id = prob_id
     prob_config.phase_id = phase_id
     prob_config.test_size = 0.2
-    prob_config.random_state = 123
+    prob_config.random_state = 45
 
     # construct data paths for raw data
     prob_config.raw_data_path = (
