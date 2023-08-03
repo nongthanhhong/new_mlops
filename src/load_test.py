@@ -62,7 +62,7 @@ def load_test(list_data, url, num_requests):
 
 #take list file 
 
-url = 'http://localhost:8000/phase-2/prob-2/predict'
+url = 'http://localhost:8000/phase-3/prob-2/predict'
 root_path = "data_warehouse/captured_data/phase-2/prob-2/13/*.parquet"
 
 num_requests = 20
