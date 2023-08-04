@@ -1,5 +1,6 @@
 import json
 import mlflow
+import time
 import logging
 import catboost 
 import argparse
@@ -8,6 +9,7 @@ import pandas as pd
 from utils import *
 import catboost as cb
 import xgboost as xgb
+from scipy.stats import entropy
 from collections import Counter
 from mlflow.models.signature import infer_signature
 from sklearn.utils.class_weight import compute_class_weight
@@ -64,6 +66,45 @@ def show_proportion(task, labels):
     for label in np.unique(labels):
         logging.info(f'label {label}: {counter[label]} - {100*counter[label]/sum(counter.values())}%')
 
+def evaluate_model(model = None, dtest = None, test_x = None):
+
+    probs_prediction = model.predict_proba(test_x)
+
+    count = len(test_x[probs_prediction.max(axis=1) > 0.8])
+    percentage = (count / len(probs_prediction)) * 100
+    # avg_prob = np.mean(probs_prediction)
+
+    start_time = time.time()
+    predictions = model.predict(test_x)
+    predict_time = round((time.time() - start_time) * 1000,2) #at ms
+    
+    # Calculate the ROC AUC score
+    if len(np.unique(dtest.get_label()))>2:
+        # Compute the ROC AUC score using the one-vs-one approach
+        calibrated_auc = roc_auc_score(dtest.get_label(), probs_prediction, multi_class='ovo')
+
+        # Compute the ROC AUC score using the one-vs-rest approach
+        # roc_auc = roc_auc_score(dtest.get_label(), predictions, multi_class='ovr')
+    else:
+        calibrated_auc = roc_auc_score(dtest.get_label(), predictions)
+
+    print(f"ROC AUC score: {calibrated_auc:.3f}")
+
+    calibrated_loss = log_loss(dtest.get_label(), probs_prediction)
+    print(f"log loss: {calibrated_loss:.3f}")
+
+    acc_score = accuracy_score(dtest.get_label(), predictions)
+
+    metrics = {"test_auc": calibrated_auc, "log_loss": calibrated_loss, "test_acc": acc_score, "percent_prob": percentage, "predict_time_ms": predict_time/len(test_x)}
+    
+    logging.info(f"metrics: {metrics}")
+    logging.info("\n" + classification_report(dtest.get_label(), predictions))
+    logging.info("\n" + str(confusion_matrix(dtest.get_label(), predictions)))
+    logging.info(f"\nPredict take {predict_time} ms for {len(test_x)} samples - AVG {predict_time/len(test_x)} ms each.")
+
+    return metrics, predictions, probs_prediction
+
+
 class ModelTrainer:
 
     @staticmethod
@@ -82,48 +123,31 @@ class ModelTrainer:
 
         logging.info("==============Load data==============")
 
-
-        dtrain, dval, dtest, test_x = train_data_loader(prob_config = prob_config, add_captured_data = add_captured_data)
+        if add_captured_data:
+            dtrain, dval, dtest, test_x, captured_x, train_x, train_y = train_data_loader(prob_config = prob_config, add_captured_data = add_captured_data)
+        else:
+            dtrain, dval, dtest, test_x = train_data_loader(prob_config = prob_config, add_captured_data = add_captured_data)
 
         print(f'Loaded {dtrain.shape[0]} Train samples, {dval.shape[0]} val samples , and {dtest.shape[0]} test samples!')
         
         logging.info("==============Training model==============")
     
         show_proportion("training", dtrain.get_label())
-
         show_proportion("validating", dval.get_label())
         
         model = class_model.model
         model.fit(dtrain, 
                   eval_set=dval,
                   **class_model.train)
-                
-        # evaluate
-
+        
         logging.info("==============Testing model==============")
          
         show_proportion("testing", dtest.get_label())
-        predictions = model.predict(dtest)
-        
-        if len(np.unique(dtest.get_label()))>2:
-            # Compute the ROC AUC score using the one-vs-one approach
-            auc_score = roc_auc_score(dtest.get_label(), model.predict_proba(dtest), multi_class='ovo')
 
-            # Compute the ROC AUC score using the one-vs-rest approach
-            # roc_auc = roc_auc_score(dtest.get_label(), predictions, multi_class='ovr')
-        else:
-            auc_score = roc_auc_score(dtest.get_label(), predictions)
+        metrics, predictions, probs_prediction = evaluate_model(model = model, dtest = dtest, test_x = test_x)
 
-        acc_score = accuracy_score(dtest.get_label(), predictions)
-        test_log_loss = log_loss(dtest.get_label(),  model.predict_proba(dtest))
-        metrics = {"test_auc": auc_score, "log_loss": test_log_loss, "test_acc": acc_score}
-
-        logging.info(f"metrics: {metrics}")
-        logging.info("\n" + classification_report(dtest.get_label(), predictions))
-        logging.info("\n" + str(confusion_matrix(dtest.get_label(), predictions)))
 
         logging.info("=================Retrain model with cost matrix======================")
-        
         
         # calculate the confusion matrix
         cm = confusion_matrix(dtest.get_label(), predictions)
@@ -150,8 +174,7 @@ class ModelTrainer:
 
         # initialize the CatBoostClassifier with the cost matrix
         class_weights = dict(zip(classes, weights))
-        # print(class_weights)
-        # return
+        
 
         key_to_exclude = 'auto_class_weights'
 
@@ -164,77 +187,63 @@ class ModelTrainer:
                   **class_model.train)
         
         logging.info("==============Testing new model==============")
-         
-        predictions = model.predict(dtest)
+
+        metrics, predictions, probs_prediction = evaluate_model(model = model, dtest = dtest, test_x = test_x)
+
+        if add_captured_data:
+            logging.info("==============Improve use Active learning==============")
+
+            unlabeled_data = captured_x.copy()
+            
+            logging.disable(logging.CRITICAL)
+            loop = 0
+
+            while loop < 10 and len(unlabeled_data) != 0:
+                probs_prediction = model.predict_proba(unlabeled_data)
+                
+                
+                # Select the most informative unlabeled data points
+                most_informative_data = unlabeled_data[(probs_prediction.max(axis=1) > 0.9) | (probs_prediction.min(axis=1) < 0.1)]
+                most_informative_predictions = model.predict(most_informative_data)
+                
+                train_x = pd.concat([train_x, most_informative_data ])
+                train_y = pd.concat([train_y, pd.DataFrame(most_informative_predictions) ])
+                
+
+                unlabeled_data.drop(index=most_informative_data.index, inplace=True)
+                unlabeled_data.reset_index(drop=True, inplace=True)
+                
+                unlabeled_data.info()
+
+                dtrain = cb.Pool(data=train_x, label=train_y)
+                # model = class_model.model
+
+                model.fit(dtrain, 
+                  eval_set=dval,
+                  **class_model.train)
+
+            logging.disable(logging.NOTSET)   
+
+            metrics, predictions, probs_prediction = evaluate_model(model = model, dtest = dtest, test_x = test_x) 
         
-        if len(np.unique(dtest.get_label()))>2:
-            # Compute the ROC AUC score using the one-vs-one approach
-            auc_score = roc_auc_score(dtest.get_label(), model.predict_proba(dtest), multi_class='ovo')
-
-            # Compute the ROC AUC score using the one-vs-rest approach
-            # roc_auc = roc_auc_score(dtest.get_label(), predictions, multi_class='ovr')
-        else:
-            auc_score = roc_auc_score(dtest.get_label(), predictions)
-
         
-        acc_score = accuracy_score(dtest.get_label(), predictions)
-
-        test_log_loss = log_loss(dtest.get_label(),  model.predict_proba(dtest))
-        metrics = {"test_auc": auc_score, "log_loss": test_log_loss, "test_acc": acc_score}
-
-        logging.info(f"metrics: {metrics}")
-        logging.info("\n" + classification_report(dtest.get_label(), predictions))
-        logging.info("\n" + str(confusion_matrix(dtest.get_label(), predictions)))
-
-
+        
         logging.info("==============Improve use CalibratedClassifierCV model==============")
 
         # Assume that `X_test` and `y_test` are the test data and labels
         # Assume that `clf` is a trained binary classifier with a `predict_proba` method
-
-        # Use the `predict_proba` method to get the predicted probabilities for the positive class
-        predict_probs = model.predict_proba(dtest)
-        # Calculate the log loss
-        loss = log_loss(dtest.get_label(), predict_probs)
-        print(f"Log loss: {loss:.3f}")
+        
+        loss = log_loss(dtest.get_label(), probs_prediction)
+        print(f"Previous log loss: {loss:.3f}")
 
         # Calibrate the predicted probabilities using isotonic regression
         calibrator = CalibratedClassifierCV(model, cv='prefit', method='isotonic')
         calibrator.fit(test_x, dtest.get_label())
-        calibrated_probs = calibrator.predict_proba(test_x)
-        predictions = calibrator.predict(test_x)
-
-        # Calculate the ROC AUC score and log loss for the calibrated probabilities
-
         
-        # Calculate the ROC AUC score
-        if len(np.unique(dtest.get_label()))>2:
-            # Compute the ROC AUC score using the one-vs-one approach
-            calibrated_auc = roc_auc_score(dtest.get_label(), calibrated_probs, multi_class='ovo')
-
-            # Compute the ROC AUC score using the one-vs-rest approach
-            # roc_auc = roc_auc_score(dtest.get_label(), predictions, multi_class='ovr')
-        else:
-            calibrated_auc = roc_auc_score(dtest.get_label(), predictions)
-
-        print(f"Calibrated ROC AUC score: {calibrated_auc:.3f}")
-
-        calibrated_loss = log_loss(dtest.get_label(), calibrated_probs)
-        print(f"Calibrated log loss: {calibrated_loss:.3f}")
-
-        acc_score = accuracy_score(dtest.get_label(), predictions)
-
-        metrics = {"test_auc": calibrated_auc, "log_loss": calibrated_loss, "test_acc": acc_score}
-
-        
-
-        logging.info(f"metrics: {metrics}")
-        logging.info("\n" + classification_report(dtest.get_label(), predictions))
-        logging.info("\n" + str(confusion_matrix(dtest.get_label(), predictions)))
-
         model = calibrator
-
-
+        
+        metrics, predictions, probs_prediction = evaluate_model(model = model, dtest = dtest, test_x = test_x)
+        
         # mlflow log
         mlflow.log_params(model.get_params())
         mlflow.log_metrics(metrics)
@@ -245,10 +254,8 @@ class ModelTrainer:
             signature=signature,
         )
         mlflow.end_run()
-        
         logging.info("finish train model")
-
-# def retrain_model(model,)
+        
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

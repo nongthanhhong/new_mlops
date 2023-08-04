@@ -115,40 +115,41 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
         
         logging.info("Use captured data and feature selection")
         captured_x = load_capture_data(prob_config)
-
         columns = data_x.columns
+
         #feature selection
-        logging.info("Selecting features...")
+        # logging.info("Selecting features...")
 
-        selected_columns = feature_selection(data_x = data_x, data_y = data_y, captured_x = captured_x)
+        # selected_columns = feature_selection(data_x = data_x, data_y = data_y, captured_x = captured_x)
         
-        data_x = data_x[selected_columns]
-        captured_x = captured_x[selected_columns]
+        # data_x = data_x[selected_columns]
+        # captured_x = captured_x[selected_columns]
 
-        # set weight
-        logging.info("Calculating sample_weight...")
+        # # set weight
+        # logging.info("Calculating sample_weight...")
         
-    
-        model = KLIEP(kernel='additive_chi2')
-        model.fit(X=data_x.to_numpy(), y=data_y.to_numpy(), Xt=captured_x.to_numpy())
-        train_weight = model.predict_weights(data_x.to_numpy())
-
-        print(train_weight)
-        return
-
-        epsilon = 1e-6
-        train_weight = [max(w, epsilon) for w in train_weight]
-
 
         # split data into training, validation, and test sets
-        train_x, test_x, train_y, test_y, train_weights, test_weights = train_test_split(data_x, data_y, train_weight, 
-                                                                                            test_size=0.1, 
-                                                                                            random_state=42,
-                                                                                            stratify= data_y)
-        train_x, val_x, train_y, val_y, train_weights, val_weights = train_test_split(train_x, train_y, train_weights, 
-                                                                                        test_size=0.25, 
-                                                                                        random_state=42,
-                                                                                        stratify= train_y)
+        # train_x, test_x, train_y, test_y, train_weights, test_weights = train_test_split(data_x, data_y, train_weight, 
+        #                                                                                     test_size=0.1, 
+        #                                                                                     random_state=42,
+        #                                                                                     stratify= data_y)
+        # train_x, val_x, train_y, val_y, train_weights, val_weights = train_test_split(train_x, train_y, train_weights, 
+        #                                                                                 test_size=0.25, 
+        #                                                                                 random_state=42,
+        #                                                                                 stratify= train_y)
+        
+        # dval = cb.Pool(data=val_x, label=val_y, weight=val_weights)
+        # dtest = cb.Pool(data=test_x, label=test_y, weight=test_weights)
+
+        train_x, test_x, train_y, test_y = train_test_split(data_x, data_y,
+                                                            test_size=0.1, 
+                                                            random_state=42,
+                                                            stratify= data_y)
+        train_x, val_x, train_y, val_y = train_test_split(train_x, train_y,
+                                                            test_size=0.25, 
+                                                            random_state=42,
+                                                            stratify= train_y)
         
         # smote = SMOTE(sampling_strategy={2: desired_count}, random_state=0)
         smote = SMOTE(random_state=0)
@@ -161,9 +162,7 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
         total_dist = 0
 
         for col in train_x.columns:
-
             logging.info(col)
-
             # compute the Wasserstein distance
             wasserstein_dist = wasserstein_distance(train_x[col], agr_train_x[col])
             print("Wasserstein distance:", wasserstein_dist)
@@ -177,16 +176,23 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
             
         if total_dist < len(train_x.columns)*0.005:
             logging.info("Use oversampling for training dataset")
+            # create Pool objects for each set with weights
             dtrain = cb.Pool(data=agr_train_x, label=agr_train_y)
+            dval =  cb.Pool(data=val_x, label=val_y)
+            dtest =  cb.Pool(data=test_x, label=test_y)
+                
+            return dtrain, dval, dtest, test_x, captured_x, agr_train_x, agr_train_y
         else:
             logging.info("Not use oversampling for training dataset")
+            # create Pool objects for each set with weights
             dtrain = cb.Pool(data= train_x, label= train_y)
+            dval =  cb.Pool(data=val_x, label=val_y)
+            dtest =  cb.Pool(data=test_x, label=test_y)
+                
+            return dtrain, dval, dtest, test_x, captured_x, train_x, train_y
 
 
-        # create Pool objects for each set with weights
-        # dtrain = cb.Pool(data=agr_train_x, label=agr_train_y)
-        dval = cb.Pool(data=val_x, label=val_y, weight=val_weights)
-        dtest = cb.Pool(data=test_x, label=test_y, weight=test_weights)
+        
 
     else:
         logging.info("Use original data")
@@ -206,8 +212,8 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
         dtrain = cb.Pool(data=train_x, label=train_y)
         dval =  cb.Pool(data=val_x, label=val_y)
         dtest =  cb.Pool(data=test_x, label=test_y)
+        return dtrain, dval, dtest, test_x
         
-    return dtrain, dval, dtest, test_x
 
 def deploy_data_loader(prob_config: ProblemConfig, raw_df: pd.DataFrame, captured_data_dir = None, id = None, scaler = None, encoder = None):
 
@@ -293,7 +299,12 @@ def captured_data_loader(prob_config: ProblemConfig):
     # Disable all logging calls
     logging.disable(logging.CRITICAL)
 
-    for idx in [4]:
+    folder_names = [
+                    d for d in os.listdir(prob_config.captured_data_dir)
+                    if os.path.isdir(os.path.join(prob_config.captured_data_dir, d)) and d != "processed"
+                    ]
+
+    for idx in folder_names:
 
         path_save = os.path.join(prob_config.captured_data_dir,str(idx))
 
@@ -316,7 +327,7 @@ def captured_data_loader(prob_config: ProblemConfig):
     # Enable all logging calls
     logging.disable(logging.NOTSET)
 
-    # captured_x = captured_x.drop_duplicates().reset_index(drop=True)
+    captured_x = captured_x.drop_duplicates().reset_index(drop=True)
     new_data = captured_x[columns_to_keep]
     encoded_data = transform_new_data(prob_config , new_data, encoder=encoder)
 
@@ -335,7 +346,6 @@ def captured_data_loader(prob_config: ProblemConfig):
     new_data.to_parquet(prob_config.captured_x_path)
 
     return new_data
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
