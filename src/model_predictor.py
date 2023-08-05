@@ -136,7 +136,7 @@ class ModelPredictor:
 
         drift_detect_time = time.time()
         # is_drifted = self.detect_drift(feature_df["feature19"])
-        is_drifted = 1
+        is_drifted = 0
         logging.info(f"drift detect take {round((time.time() - drift_detect_time) * 1000, 0)} ms")
 
         run_time = round((time.time() - start_time) * 1000, 0)
