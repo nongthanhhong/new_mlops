@@ -28,6 +28,8 @@ def raw_data_process(prob_config: ProblemConfig, flag = "new"):
 
     save_path = f"./prob_resource/{prob_config.phase_id}/{prob_config.prob_id}/"
     if os.path.exists(save_path) and flag == "new":
+        for file in os.listdir(save_path):
+            os.remove(os.path.join(save_path, file))
         os.rmdir(save_path)
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
