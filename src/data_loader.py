@@ -27,12 +27,14 @@ def raw_data_process(prob_config: ProblemConfig, flag = "new"):
     logging.info("Processing data from  %s %s", prob_config.phase_id, prob_config.prob_id)
 
     save_path = f"./prob_resource/{prob_config.phase_id}/{prob_config.prob_id}/"
+    if os.path.exists(save_path) and flag == "new":
+        os.rmdir(save_path)
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
 
     training_data = pd.read_parquet(prob_config.raw_data_path)
 
-    # training_data = training_data.drop_duplicates().reset_index(drop=True)
+    training_data = training_data.drop_duplicates().reset_index(drop=True)
 
     logging.info("Encoding categorical columns...")
     encoded_data = train_encoder(prob_config = prob_config, df = training_data)
