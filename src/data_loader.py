@@ -36,7 +36,7 @@ def raw_data_process(prob_config: ProblemConfig, flag = "new"):
 
     training_data = pd.read_parquet(prob_config.raw_data_path)
 
-    training_data = training_data.drop_duplicates().reset_index(drop=True)
+    # training_data = training_data.drop_duplicates().reset_index(drop=True)
 
     logging.info("Encoding categorical columns...")
     encoded_data = train_encoder(prob_config = prob_config, df = training_data)
