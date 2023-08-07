@@ -113,9 +113,13 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
     """
      # load train data
 
+    data_x, data_y = load_data(prob_config)
+
+    data_x.drop(['feature9', 'feature3', 'feature2'], axis=1, inplace = True)
+
     if add_captured_data:
 
-        data_x, data_y = load_data(prob_config)
+        
         
         logging.info("Use captured data and feature selection")
         captured_x = load_capture_data(prob_config)
@@ -194,13 +198,10 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
             dtest =  cb.Pool(data=test_x, label=test_y)
                 
             return dtrain, dval, dtest, test_x, captured_x, train_x, train_y
-
-
-        
+            
 
     else:
         logging.info("Use original data")
-        data_x, data_y = load_data(prob_config)
         
 
         # split data into training, validation, and test sets
@@ -218,7 +219,6 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
         dtest =  cb.Pool(data=test_x, label=test_y)
         return dtrain, dval, dtest, test_x
         
-
 def deploy_data_loader(prob_config: ProblemConfig, raw_df: pd.DataFrame, captured_data_dir = None, id = None, scaler = None, encoder = None):
 
     """
@@ -308,15 +308,19 @@ def captured_data_loader(prob_config: ProblemConfig):
                     if os.path.isdir(os.path.join(prob_config.captured_data_dir, d)) and d != "processed"
                     ]
 
+    batchs = []
     for idx in folder_names:
 
         path_save = os.path.join(prob_config.captured_data_dir,str(idx))
+        print(f"Processing {path_save}")
 
         for file_path in tqdm(glob.glob(path_save + "/*.parquet"), ncols=100, desc ="Loading...", unit ="file"):
 
             try:
                 captured_data = pd.read_parquet(file_path)
                 captured_x = pd.concat([captured_x, captured_data])
+                filename = os.path.basename(file_path) #[:-len(".parquet")]
+                batchs.append((captured_data,filename))
 
                 # new_data = captured_data[columns_to_keep]
                 # encoded_data = transform_new_data(prob_config , new_data)
@@ -345,11 +349,25 @@ def captured_data_loader(prob_config: ProblemConfig):
     with open(save_path + f"{scaler_name}_scaler.pkl", 'rb') as f:
         scaler = pickle.load(f)
 
-    new_data = preprocess_data(prob_config = prob_config, data = encoded_data, mode = 'deploy', deploy_scaler=scaler)
+    processed_new_data = preprocess_data(prob_config = prob_config, data = encoded_data, mode = 'deploy', deploy_scaler=scaler)
 
-    new_data.to_parquet(prob_config.captured_x_path)
+    processed_new_data.to_parquet(prob_config.captured_x_path)
+    processed_new_data.info()
 
-    return new_data
+
+    # Disable all logging calls
+    logging.disable(logging.CRITICAL)
+    #save batches
+    for batch, file_name in tqdm(batchs, ncols=100, desc ="Saving batches...", unit ="file"):
+        new_data = batch[columns_to_keep]
+        encoded_data = transform_new_data(prob_config, new_data, encoder=encoder)
+        new_data = preprocess_data(prob_config = prob_config, data = encoded_data, mode = 'deploy', deploy_scaler=scaler)
+        new_data.to_parquet(prob_config.processed_captured_data_dir / file_name)
+        
+    # Enable all logging calls
+    logging.disable(logging.NOTSET)
+
+    return processed_new_data
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

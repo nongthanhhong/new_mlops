@@ -61,7 +61,7 @@ class ModelPredictor:
         self.columns_to_keep = feature_names
 
         train_data, _ = load_data(self.prob_config)
-        self.drift_column = train_data["feature19"]
+        self.drift_column = train_data["feature34"]
 
         if self.prob_config.prob_id == 'prob-2' and self.prob_config.phase_id == "phase-3":
             save_path = f"./prob_resource/{self.prob_config.phase_id}/{self.prob_config.prob_id}/"
@@ -97,7 +97,7 @@ class ModelPredictor:
         # return 1 if p_value < 0.9 else 0
     
         wasserstein = wasserstein_distance(ref_data, curr_data)
-        return 1 if wasserstein > 0.33 else 0
+        return 1 if wasserstein > 0.09821308307267465 else 0
 
     def predict(self, data: Data):
 
@@ -135,8 +135,8 @@ class ModelPredictor:
 
 
         drift_detect_time = time.time()
-        # is_drifted = self.detect_drift(feature_df["feature19"])
-        is_drifted = 0
+        is_drifted = self.detect_drift(feature_df["feature34"])
+        # is_drifted = 0
         logging.info(f"drift detect take {round((time.time() - drift_detect_time) * 1000, 0)} ms")
 
         run_time = round((time.time() - start_time) * 1000, 0)

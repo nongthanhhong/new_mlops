@@ -14,11 +14,10 @@ from data_loader import captured_data_loader
 
 def load_and_process(prob_config: ProblemConfig):
 
-    logging.info("Load captured data")
+    logging.info("==================Load captured data==================")
 
     captured_x = captured_data_loader(prob_config)
-
-    print(captured_x.info())
+    logging.info("==================Done process captured data==================")
 
 
 if __name__ == "__main__":
