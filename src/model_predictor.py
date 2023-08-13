@@ -50,42 +50,39 @@ class ModelPredictor:
         # load model
         model_uri = os.path.join("models:/", self.config["model_name"], str(self.config["model_version"]))
         self.model = mlflow.pyfunc.load_model(model_uri)
-
+        
+        # take input columns
         signature = self.model._model_meta.signature
         input_schema = signature.inputs
-
         feature_names = []
         for col_spec in input_schema:
             feature_names.append(col_spec.name)
-
         self.columns_to_keep = feature_names
 
+        # set drifted column
         train_data, _ = load_data(self.prob_config)
         self.drift_column = train_data["feature34"]
 
+        # take label's map
         if self.prob_config.prob_id == 'prob-2' and self.prob_config.phase_id == "phase-3":
-            save_path = f"./prob_resource/{self.prob_config.phase_id}/{self.prob_config.prob_id}/"
-            with open(save_path + "label_mapping.pickle", 'rb') as f:
+            with open(self.prob_config.prob_resource_path + "label_mapping.pickle", 'rb') as f:
                 label_mapping = pickle.load(f)
             self.inverse_label_mapping = {v: k for k, v in label_mapping.items()}
-        
+
+        # create for save coming requests
         submit_num = len(glob.glob(os.path.join(self.prob_config.captured_data_dir, '*/')))
-        
         self.path_save_captured = (self.prob_config.captured_data_dir / f"{submit_num}")
         os.makedirs(self.path_save_captured, exist_ok=True)
 
+        # pre-load file for processing 
         with open("./src/config_files/data_config.json", 'r') as f:
             config = json.load(f)
-        save_path = f"./prob_resource/{ self.prob_config.phase_id}/{ self.prob_config.prob_id}/"
         scaler_name = config['scale_data']['method']
-        if not os.path.isfile(save_path + f"{scaler_name}_scaler.pkl"):
+        if not os.path.isfile(self.prob_config.prob_resource_path + f"{scaler_name}_scaler.pkl"):
             raise ValueError(f"Not exist prefitted '{scaler_name}' scaler")
-        # Load the saved scaler from the file
-        with open(save_path + f"{scaler_name}_scaler.pkl", 'rb') as f:
+        with open(self.prob_config.prob_resource_path + f"{scaler_name}_scaler.pkl", 'rb') as f:
             self.scaler = pickle.load(f)
-        
-        save_path = f"./prob_resource/{self.prob_config.phase_id}/{self.prob_config.prob_id}/"
-        with open(save_path + "encoder.pkl", 'rb') as f:
+        with open(self.prob_config.prob_resource_path + "encoder.pkl", 'rb') as f:
             self.encoder = pickle.load(f)
     
     def detect_drift(self, drift_feature) -> int:
@@ -108,13 +105,6 @@ class ModelPredictor:
         logging.info(f"Load data take {round((time.time() - data_time) * 1000, 0)} ms")
 
         process_data_time = time.time()
-        # Use a caching mechanism to store the results of previous inferences.
-        # if raw_data.values.shape not in self.cached_features:
-        #     feature_df = deploy_data_loader(prob_config=self.prob_config, raw_df=raw_data, captured_data_dir=self.path_save_captured, id=data.id, scaler=self.scaler, encoder=self.encoder)
-        #     self.cached_features[raw_data.values.shape] = feature_df
-        # else:
-        #     feature_df = self.cached_features[raw_data.values.shape]
-
         feature_df = deploy_data_loader(prob_config=self.prob_config, raw_df=raw_data, captured_data_dir=self.path_save_captured, id=data.id, scaler=self.scaler, encoder=self.encoder)
         logging.info(f"Process data take {round((time.time() - process_data_time) * 1000, 0)} ms")
 
@@ -131,9 +121,7 @@ class ModelPredictor:
             prediction = [self.inverse_label_mapping[label] for label in prediction_list]
             prediction = np.array(prediction, dtype=str)
         logging.info(f"Transform predict take {round((time.time() - transform_predict_time) * 1000, 0)} ms")
-
-
-
+        
         drift_detect_time = time.time()
         is_drifted = self.detect_drift(feature_df["feature34"])
         # is_drifted = 0
@@ -141,18 +129,16 @@ class ModelPredictor:
 
         run_time = round((time.time() - start_time) * 1000, 0)
         logging.info(f"total prediction takes {run_time} ms")
-        
 
         # compress_start_time = time.time()
         return JSONResponse({
             "id": data.id,
             "predictions": prediction.tolist(),
-            "drift": is_drifted,
-            "inference time": run_time
+            "drift": is_drifted
         })
-
-
-
+        #     "inference time": run_time
+        # })
+    
 class PredictorApi:
     def __init__(self, predictor_1: ModelPredictor, predictor_2: ModelPredictor, phase_id:str):
         self.predictor_1 = predictor_1
@@ -184,8 +170,7 @@ class PredictorApi:
         async def predict(data: Data, request: Request):
 
             self._log_request(request)
-
-
+            
             # with concurrent.futures.ProcessPoolExecutor(max_workers=4) as executor:
             #     response = executor.submit(self.predictor_2.predict, data).result()
 
@@ -218,7 +203,7 @@ class PredictorApi:
 
     def run(self, port):
         uvicorn.run(self.app, host="0.0.0.0", port=port)
-
+43
 app = None
 if __name__ == "__main__":
     prob_1_config_path = (

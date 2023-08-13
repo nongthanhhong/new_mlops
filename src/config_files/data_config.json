@@ -1,7 +1,7 @@
 {
     "missing_values": {
         "method": "fill" , 
-        "fill_value": "mean"
+        "fill_value": "median"
     },
     "scale_data": {
         "method": "standard"

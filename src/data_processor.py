@@ -28,12 +28,10 @@ def train_encoder(prob_config: ProblemConfig, df: pd.DataFrame):
     Returns:
     pandas.DataFrame: Data that had been encoding using one-hot encoder
     """
-    categorical_cols= prob_config.raw_categorical_cols
+    categorical_cols = prob_config.raw_categorical_cols
 
     # Create a OneHotEncoder object
     encoder = TargetEncoder()
-    
-    save_path = f"./prob_resource/{prob_config.phase_id}/{prob_config.prob_id}/"
     
     # Fit the encoder on the training data
     cat_columns = df[categorical_cols]
@@ -47,7 +45,7 @@ def train_encoder(prob_config: ProblemConfig, df: pd.DataFrame):
 
         # Save the label mapping to disk using pickle
         
-        with open(save_path + "label_mapping.pickle", 'wb') as f:
+        with open(prob_config.prob_resource_path + "label_mapping.pickle", 'wb') as f:
             pickle.dump(label_mapping, f)
 
         target_columns = labels
@@ -69,7 +67,7 @@ def train_encoder(prob_config: ProblemConfig, df: pd.DataFrame):
     df = pd.concat([df, one_hot_df], axis=1)
     
     # Save the fitted encoder to disk
-    with open(save_path + "encoder.pkl", 'wb') as f:
+    with open(prob_config.prob_resource_path + "encoder.pkl", 'wb') as f:
         pickle.dump(encoder, f)
     
     return df
@@ -126,8 +124,7 @@ def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, mode='train'
         # Load the config file
         with open("./src/config_files/data_config.json", 'r') as f:
             config = json.load(f)
-
-        save_path = f"./prob_resource/{prob_config.phase_id}/{prob_config.prob_id}/"
+            
 
         preprocess_missing_data_time = time.time()
 
@@ -153,7 +150,7 @@ def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, mode='train'
         # Scale data
 
         Scale_data_time = time.time()
-        if mode == 'train' :
+        if mode == 'train' and flag == "new":
             if config['scale_data']:
                 scaler = None
                 scaler_name = config['scale_data']['method']
@@ -169,14 +166,14 @@ def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, mode='train'
             # if  flag == "new":
             scale_features = pd.DataFrame(scaler.fit_transform(old_features), columns=old_features.columns)
             # Save the scaler to a file for later use in deployment
-            with open(save_path + f"{scaler_name}_scaler.pkl", 'wb') as f:
+            with open(prob_config.prob_resource_path + f"{scaler_name}_scaler.pkl", 'wb') as f:
                 pickle.dump(scaler, f)
                 
-        elif  flag == "update":
-            if not os.path.isfile(save_path + f"{scaler_name}_scaler.pkl"):
+        elif flag == "update":
+            if not os.path.isfile(prob_config.prob_resource_path + f"{scaler_name}_scaler.pkl"):
                 raise ValueError(f"Not exist prefitted '{scaler_name}' scaler")
             # Load the saved scaler from the file
-            with open(save_path + f"{scaler_name}_scaler.pkl", 'rb') as f:
+            with open(prob_config.prob_resource_path + f"{scaler_name}_scaler.pkl", 'rb') as f:
                 scaler = pickle.load(f)
             scale_features = pd.DataFrame(scaler.transform(old_features), columns=old_features.columns)
             data = pd.concat([scale_features, old_label], axis=1)
@@ -190,10 +187,10 @@ def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, mode='train'
         wrong_data_type_time = time.time()
 
         # Use the apply() method to convert each column to the correct data type.
-        data = data.apply(pd.to_numeric, errors='coerce')
+        data = data.apply(pd.to_numeric, errors='coerce', dtype=np.float64)
         data.fillna(0, inplace=True)
             
-        # with open(save_path + "types.json", 'r') as f:
+        # with open(prob_config.prob_resource_path + "types.json", 'r') as f:
             # dtype = json.load(f)
         # columns = data.columns if mode == 'deploy' else data.drop([prob_config.target_col], axis=1).columns
         # for column in columns:

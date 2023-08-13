@@ -54,7 +54,7 @@ def load_test(list_data, url, num_requests):
 
             if json_res["drift"] == 1:
                  drift +=1
-            total_infe_time += json_res["inference time"]
+            # total_infe_time += json_res["inference time"]
 
         p95_response_time = sorted(response_times)[int(0.95 * num_requests)]
         return p95_response_time, drift, total_infe_time
@@ -63,7 +63,7 @@ def load_test(list_data, url, num_requests):
 #take list file 
 
 url = 'http://localhost:8000/phase-3/prob-2/predict'
-root_path = "data_warehouse/captured_data/phase-3/prob-2/13/*.parquet"
+root_path = "data_warehouse/captured_data/phase-3/prob-2/18/*.parquet"
 
 num_requests = 17
 
@@ -75,8 +75,8 @@ p95_response_time, drift, total_infe_time = load_test(list_data, url, num_reques
 print(f"Request take: {round((time.time() - start_time),2)} seconds")
 print(f"The P95 response time is {round(p95_response_time,2)} seconds.")
 print(f"The number of drift is {drift}.")
-print(f"The total inference time is {round(total_infe_time/1000,2)} seconds.")
-print(f"The AVG inference time is {total_infe_time/num_requests} ms.")
+# print(f"The total inference time is {round(total_infe_time/1000,2)} seconds.")
+# print(f"The AVG inference time is {total_infe_time/num_requests} ms.")
 
 
         

@@ -32,27 +32,25 @@
 
     -   After processing data, `./data_warehouse/processed_data` dir should look like
 
-        ```bash
-        data_warehouse/processed_data
-        ├── .gitkeep
-        └── phase-1
-            └── prob-1
-                ├── features_config.json
-                ├── processed_data_x.parquet
-                └── processed_data_y.parquet
-        ```
+    ```bash
+    data_warehouse/processed_data
+    ├── .gitkeep
+    └── phase-1
+        └── prob-1
+            ├── features_config.json
+            ├── processed_data_x.parquet
+            └── processed_data_y.parquet
+    ```
 
 3. Train model
 
-        ```bash
-
-        make mlflow_up
-        export MLFLOW_TRACKING_URI=http://localhost:5040
-        python src/model_trainer.py --phase-id phase-1 --prob-id prob-1
-        python src/model_trainer.py --phase-id phase-2 --prob-id prob-1 
-        python src/model_trainer.py --phase-id phase-3 --prob-id prob-1 
-        
-        ```
+    ```bash
+    make mlflow_up
+    export MLFLOW_TRACKING_URI=http://localhost:5040
+    python src/model_trainer.py --phase-id phase-1 --prob-id prob-1
+    python src/model_trainer.py --phase-id phase-2 --prob-id prob-1 
+    python src/model_trainer.py --phase-id phase-3 --prob-id prob-1 
+    ```
 
     -   Register model: - Go to mlflow UI at <http://localhost:5040> and 
                         - Register a new model named **phase1-prob1** & **phase1-prob2**

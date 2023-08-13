@@ -81,21 +81,18 @@ def evaluate_model(model = None, dtest = None, test_x = None):
     # Calculate the ROC AUC score
     if len(np.unique(dtest.get_label()))>2:
         # Compute the ROC AUC score using the one-vs-one approach
-        calibrated_auc = roc_auc_score(dtest.get_label(), probs_prediction, multi_class='ovo')
+        roc_auc = roc_auc_score(dtest.get_label(), probs_prediction, multi_class='ovo')
 
         # Compute the ROC AUC score using the one-vs-rest approach
         # roc_auc = roc_auc_score(dtest.get_label(), predictions, multi_class='ovr')
     else:
-        calibrated_auc = roc_auc_score(dtest.get_label(), predictions)
-
-    print(f"ROC AUC score: {calibrated_auc:.3f}")
-
-    calibrated_loss = log_loss(dtest.get_label(), probs_prediction)
-    print(f"log loss: {calibrated_loss:.3f}")
+        roc_auc = roc_auc_score(dtest.get_label(), predictions)
+        
+    log_loss = log_loss(dtest.get_label(), probs_prediction)
 
     acc_score = accuracy_score(dtest.get_label(), predictions)
 
-    metrics = {"test_auc": calibrated_auc, "log_loss": calibrated_loss, "test_acc": acc_score, "percent_prob": percentage, "predict_time_ms": predict_time/len(test_x)}
+    metrics = {"test_auc": roc_auc, "log_loss": log_loss, "test_acc": acc_score, "percent_prob": percentage, "predict_time_ms": predict_time/len(test_x)}
     
     logging.info(f"metrics: {metrics}")
     logging.info("\n" + classification_report(dtest.get_label(), predictions))
@@ -129,11 +126,12 @@ class ModelTrainer:
             dtrain, dval, dtest, test_x = train_data_loader(prob_config = prob_config, add_captured_data = add_captured_data)
 
         print(f'Loaded {dtrain.shape[0]} Train samples, {dval.shape[0]} val samples , and {dtest.shape[0]} test samples!')
-        
-        logging.info("==============Training model==============")
     
         show_proportion("training", dtrain.get_label())
         show_proportion("validating", dval.get_label())
+        show_proportion("testing", dtest.get_label())
+        
+        logging.info("==============Training model==============")
         
         model = class_model.model
         model.fit(dtrain, 
@@ -141,11 +139,8 @@ class ModelTrainer:
                   **class_model.train)
         
         logging.info("==============Testing model==============")
-         
-        show_proportion("testing", dtest.get_label())
 
         metrics, predictions, probs_prediction = evaluate_model(model = model, dtest = dtest, test_x = test_x)
-
 
         logging.info("=================Retrain model with cost matrix======================")
         
@@ -161,21 +156,18 @@ class ModelTrainer:
                 if i != j:
                     cost_matrix[i][j] = cm[i][j] / row_sum
 
-        classes = np.unique(dtrain.get_label())
-
         weights_1 = np.mean(cost_matrix, axis=1)
         print(weights_1)
-                    
+
+        classes = np.unique(dtrain.get_label())
         weights_2 = compute_class_weight(class_weight='balanced', classes=classes, y=dtrain.get_label())
         print(weights_2)
 
         weights = [x + y for x, y in zip(weights_1, weights_2)]
-
-
+        
         # initialize the CatBoostClassifier with the cost matrix
         class_weights = dict(zip(classes, weights))
         
-
         key_to_exclude = 'auto_class_weights'
 
         new_params = {key: value for key, value in class_model.params.items() if key != key_to_exclude}
@@ -225,16 +217,13 @@ class ModelTrainer:
             logging.disable(logging.NOTSET)   
 
             metrics, predictions, probs_prediction = evaluate_model(model = model, dtest = dtest, test_x = test_x) 
-        
-        
-        
+
         logging.info("==============Improve use CalibratedClassifierCV model==============")
 
         # Assume that `X_test` and `y_test` are the test data and labels
         # Assume that `clf` is a trained binary classifier with a `predict_proba` method
         
-        loss = log_loss(dtest.get_label(), probs_prediction)
-        print(f"Previous log loss: {loss:.3f}")
+        print(f"Previous log loss: {metrics['log_loss']:.3f}")
 
         # Calibrate the predicted probabilities using isotonic regression
         calibrator = CalibratedClassifierCV(model, cv='prefit', method='isotonic')

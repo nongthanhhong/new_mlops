@@ -18,6 +18,8 @@ class ProblemConfig:
     test_size: float
     random_state: int
 
+    prob_resource_path: str
+
     # for original data
     raw_data_path: str
     raw_feature_config_path: str
@@ -53,6 +55,8 @@ def create_prob_config(phase_id: str, prob_id: str) -> ProblemConfig:
     prob_config.phase_id = phase_id
     prob_config.test_size = 0.2
     prob_config.random_state = 45
+
+    prob_config.prob_resource_path = f"./prob_resource/{prob_config.phase_id}/{prob_config.prob_id}/"
 
     # construct data paths for raw data
     prob_config.raw_data_path = (

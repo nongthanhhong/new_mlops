@@ -25,34 +25,25 @@ from problem_config import ProblemConfig, ProblemConst, get_prob_config, load_fe
 def raw_data_process(prob_config: ProblemConfig, flag = "new"):
     logging.info("------------Start process_raw_data------------")
     logging.info("Processing data from  %s %s", prob_config.phase_id, prob_config.prob_id)
-
-    save_path = f"./prob_resource/{prob_config.phase_id}/{prob_config.prob_id}/"
-    if os.path.exists(save_path) and flag == "new":
-        for file in os.listdir(save_path):
-            os.remove(os.path.join(save_path, file))
-        os.rmdir(save_path)
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
-
-
+    
+    if os.path.exists(prob_config.prob_resource_path) and flag == "new":
+        for file in os.listdir(prob_config.prob_resource_path):
+            os.remove(os.path.join(prob_config.prob_resource_path, file))
+        os.rmdir(prob_config.prob_resource_path)
+    os.makedirs(os.path.dirname(prob_config.prob_resource_path), exist_ok=True)
+    
     training_data = pd.read_parquet(prob_config.raw_data_path)
-
     # training_data = training_data.drop_duplicates().reset_index(drop=True)
 
     logging.info("Encoding categorical columns...")
     encoded_data = train_encoder(prob_config = prob_config, df = training_data)
 
     dtype = encoded_data.dtypes.to_frame('dtypes').reset_index().set_index('index')['dtypes'].astype(str).to_dict()
-    # print(dtype)
-    with open(save_path + "types.json", 'w+') as f:
+    with open(prob_config.prob_resource_path + "types.json", 'w+') as f:
         json.dump(dtype, f)
 
     logging.info("Preprocessing data...")
-
     data = preprocess_data(prob_config = prob_config, data = encoded_data, mode = 'train', flag = flag)
-
-    # nan_rows = data[data.isna().any(axis=1)]
-    # print(nan_rows)
-    # return 
     
     # Export preprocessed data
     logging.info("Save data...")
@@ -115,11 +106,9 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
 
     data_x, data_y = load_data(prob_config)
 
-    data_x.drop(['feature9', 'feature3', 'feature2'], axis=1, inplace = True)
+    # data_x.drop(['feature9', 'feature3', 'feature2', 'feature4'], axis=1, inplace = True)
 
     if add_captured_data:
-
-        
         
         logging.info("Use captured data and feature selection")
         captured_x = load_capture_data(prob_config)
@@ -202,8 +191,6 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
 
     else:
         logging.info("Use original data")
-        
-
         # split data into training, validation, and test sets
         train_x, test_x, train_y, test_y = train_test_split(data_x, data_y,
                                                             test_size=0.1, 
@@ -233,7 +220,7 @@ def deploy_data_loader(prob_config: ProblemConfig, raw_df: pd.DataFrame, capture
     """
     
     columns_to_keep = prob_config.categorical_cols + prob_config.numerical_cols
-    new_data = raw_df[columns_to_keep]
+    new_data = raw_df[columns_to_keep].copy()
 
     transform_new_data_time = time.time()
     encoded_data = transform_new_data(prob_config , new_data, encoder = encoder)
@@ -247,8 +234,6 @@ def deploy_data_loader(prob_config: ProblemConfig, raw_df: pd.DataFrame, capture
     
     #generate id for save file
     generate_id_time = time.time()
-    # parquet_files = glob.glob(os.path.join(prob_config.captured_data_dir, '*.parquet'))
-    # filename = generate_id(str(len(parquet_files)))
     filename = generate_id(id)
     logging.info(f"generate_id_time data take {round((time.time() - generate_id_time) * 1000, 0)} ms")
 
@@ -265,21 +250,20 @@ def update_processor(prob_config: ProblemConfig, captured_data: pd.DataFrame):
     # Load the config file
     with open("./src/config_files/data_config.json", 'r') as f:
         config = json.load(f)
-
-    save_path = f"./prob_resource/{prob_config.phase_id}/{prob_config.prob_id}/"
+        
     
     # Load the saved scaler from disk
     if config['scale_data']:
         scaler_name = config['scale_data']['method']
 
-    with open(save_path + f"{scaler_name}_scaler.pkl", 'rb') as f:
+    with open(prob_config.prob_resource_path + f"{scaler_name}_scaler.pkl", 'rb') as f:
         scaler = pickle.load(f)
     
     #update with new captured data
     scaler.fit(captured_data)
 
     # Save the upgraded scaler 
-    with open(save_path + f"{scaler_name}_scaler.pkl", 'wb') as f:
+    with open(prob_config.prob_resource_path + f"{scaler_name}_scaler.pkl", 'wb') as f:
         pickle.dump(scaler, f)
 
 def captured_data_loader(prob_config: ProblemConfig):
@@ -291,11 +275,10 @@ def captured_data_loader(prob_config: ProblemConfig):
     
     with open("./src/config_files/data_config.json", 'r') as f:
         config = json.load(f)
-    save_path = f"./prob_resource/{ prob_config.phase_id}/{prob_config.prob_id}/"
+        
     scaler_name = config['scale_data']['method']
     
-    save_path = f"./prob_resource/{ prob_config.phase_id}/{ prob_config.prob_id}/"
-    with open(save_path + "encoder.pkl", 'rb') as f:
+    with open(prob_config.prob_resource_path + "encoder.pkl", 'rb') as f:
         encoder = pickle.load(f)
 
     captured_x = pd.DataFrame()
@@ -343,10 +326,10 @@ def captured_data_loader(prob_config: ProblemConfig):
 
     raw_data_process(prob_config, flag = "update")
     
-    if not os.path.isfile(save_path + f"{scaler_name}_scaler.pkl"):
+    if not os.path.isfile(prob_config.prob_resource_path + f"{scaler_name}_scaler.pkl"):
         raise ValueError(f"Not exist prefitted '{scaler_name}' scaler")
     # Load the saved scaler from the file
-    with open(save_path + f"{scaler_name}_scaler.pkl", 'rb') as f:
+    with open(prob_config.prob_resource_path + f"{scaler_name}_scaler.pkl", 'rb') as f:
         scaler = pickle.load(f)
 
     processed_new_data = preprocess_data(prob_config = prob_config, data = encoded_data, mode = 'deploy', deploy_scaler=scaler)
