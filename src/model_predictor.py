@@ -61,7 +61,7 @@ class ModelPredictor:
 
         # set drifted column
         train_data, _ = load_data(self.prob_config)
-        self.drift_column = train_data["feature34"]
+        self.drift_column = train_data["feature2"]
 
         # take label's map
         if self.prob_config.prob_id == 'prob-2' and self.prob_config.phase_id == "phase-3":
@@ -123,7 +123,7 @@ class ModelPredictor:
         logging.info(f"Transform predict take {round((time.time() - transform_predict_time) * 1000, 0)} ms")
         
         drift_detect_time = time.time()
-        is_drifted = self.detect_drift(feature_df["feature34"])
+        is_drifted = self.detect_drift(feature_df["feature2"])
         # is_drifted = 0
         logging.info(f"drift detect take {round((time.time() - drift_detect_time) * 1000, 0)} ms")
 

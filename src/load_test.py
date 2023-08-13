@@ -63,9 +63,9 @@ def load_test(list_data, url, num_requests):
 #take list file 
 
 url = 'http://localhost:8000/phase-3/prob-2/predict'
-root_path = "data_warehouse/captured_data/phase-3/prob-2/18/*.parquet"
+root_path = "data_warehouse/captured_data/phase-3/prob-2/6/*.parquet"
 
-num_requests = 17
+num_requests = 5
 
 list_data = load_list_data(root_path, num_requests)
 

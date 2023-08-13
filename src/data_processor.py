@@ -187,7 +187,7 @@ def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, mode='train'
         wrong_data_type_time = time.time()
 
         # Use the apply() method to convert each column to the correct data type.
-        data = data.apply(pd.to_numeric, errors='coerce', dtype=np.float64)
+        data = data.apply(pd.to_numeric, errors='coerce')
         data.fillna(0, inplace=True)
             
         # with open(prob_config.prob_resource_path + "types.json", 'r') as f:
