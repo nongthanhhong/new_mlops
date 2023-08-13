@@ -88,11 +88,11 @@ def evaluate_model(model = None, dtest = None, test_x = None):
     else:
         roc_auc = roc_auc_score(dtest.get_label(), predictions)
         
-    log_loss = log_loss(dtest.get_label(), probs_prediction)
+    log_loss_score = log_loss(dtest.get_label(), probs_prediction)
 
     acc_score = accuracy_score(dtest.get_label(), predictions)
 
-    metrics = {"test_auc": roc_auc, "log_loss": log_loss, "test_acc": acc_score, "percent_prob": percentage, "predict_time_ms": predict_time/len(test_x)}
+    metrics = {"test_auc": roc_auc, "log_loss": log_loss_score, "test_acc": acc_score, "percent_prob": percentage, "predict_time_ms": predict_time/len(test_x)}
     
     logging.info(f"metrics: {metrics}")
     logging.info("\n" + classification_report(dtest.get_label(), predictions))
