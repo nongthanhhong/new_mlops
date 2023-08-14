@@ -1,10 +1,10 @@
 {
     "missing_values": {
         "method": "fill" , 
-        "fill_value": "median"
+        "fill_value": "mean"
     },
     "scale_data": {
-        "method": "standard"
+        "method": "minmax"
     }
     
 }

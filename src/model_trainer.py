@@ -243,7 +243,7 @@ class ModelTrainer:
             signature=signature,
         )
         mlflow.end_run()
-        logging.info("finish train model")
+        logging.info("=================== Finish train model ===================")
         
 
 if __name__ == "__main__":

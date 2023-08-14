@@ -134,15 +134,14 @@ def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, mode='train'
         elif config['missing_values']['method'] == 'fill':
             fill_value = config['missing_values']['fill_value']
             if fill_value == 'mean':
-                data.fillna(np.mean(data), inplace=True)
+                fill_value = np.mean(data)
             elif fill_value == 'median':
-                data.fillna(np.median(data), inplace=True)
-            else:
-                data.fillna(fill_value, inplace=True)
+                fill_value = np.median(data) 
             
         # Fill missing values only once, instead of checking for missing values after each fill method
         # data.fillna(method='ffill', inplace=True)
         # data.fillna(method='bfill', inplace=True)
+        data.fillna(fill_value, inplace=True)
         data.fillna(0, inplace=True)
             
         logging.info(f"preprocess_missing_data_time data take {round((time.time() - preprocess_missing_data_time) * 1000, 0)} ms")
@@ -163,8 +162,8 @@ def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, mode='train'
                     
             old_label = data[[prob_config.target_col]]
             old_features = data.drop([prob_config.target_col], axis=1)
-            # if  flag == "new":
             scale_features = pd.DataFrame(scaler.fit_transform(old_features), columns=old_features.columns)
+            data = pd.concat([scale_features, old_label], axis=1)
             # Save the scaler to a file for later use in deployment
             with open(prob_config.prob_resource_path + f"{scaler_name}_scaler.pkl", 'wb') as f:
                 pickle.dump(scaler, f)
@@ -175,6 +174,9 @@ def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, mode='train'
             # Load the saved scaler from the file
             with open(prob_config.prob_resource_path + f"{scaler_name}_scaler.pkl", 'rb') as f:
                 scaler = pickle.load(f)
+                    
+            old_label = data[[prob_config.target_col]]
+            old_features = data.drop([prob_config.target_col], axis=1)
             scale_features = pd.DataFrame(scaler.transform(old_features), columns=old_features.columns)
             data = pd.concat([scale_features, old_label], axis=1)
 
@@ -188,6 +190,7 @@ def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, mode='train'
 
         # Use the apply() method to convert each column to the correct data type.
         data = data.apply(pd.to_numeric, errors='coerce')
+        data.fillna(fill_value, inplace=True)
         data.fillna(0, inplace=True)
             
         # with open(prob_config.prob_resource_path + "types.json", 'r') as f:

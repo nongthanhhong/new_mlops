@@ -198,4 +198,6 @@ mlruns
 
 catboost_info
 
+load_test
+
 test.py

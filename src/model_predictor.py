@@ -49,6 +49,7 @@ class ModelPredictor:
 
         # load model
         model_uri = os.path.join("models:/", self.config["model_name"], str(self.config["model_version"]))
+        logging.info(f"model uri: {model_uri}")
         self.model = mlflow.pyfunc.load_model(model_uri)
         
         # take input columns
@@ -62,6 +63,8 @@ class ModelPredictor:
         # set drifted column
         train_data, _ = load_data(self.prob_config)
         self.drift_column = train_data["feature2"]
+
+        print(self.prob_config.prob_resource_path)
 
         # take label's map
         if self.prob_config.prob_id == 'prob-2' and self.prob_config.phase_id == "phase-3":
@@ -94,7 +97,7 @@ class ModelPredictor:
         # return 1 if p_value < 0.9 else 0
     
         wasserstein = wasserstein_distance(ref_data, curr_data)
-        return 1 if wasserstein > 0.09821308307267465 else 0
+        return 1 if wasserstein > 0.33 else 0
 
     def predict(self, data: Data):
 
@@ -102,14 +105,25 @@ class ModelPredictor:
 
         data_time = time.time()
         raw_data = pd.DataFrame(data.rows, columns=data.columns)
-        logging.info(f"Load data take {round((time.time() - data_time) * 1000, 0)} ms")
+        
+        # duplicate_rows = raw_data.duplicated()
+        # number_of_duplicate_rows = duplicate_rows.sum()
+        # print("The number of duplicate rows is:", number_of_duplicate_rows)
+
+        logging.info(f"Load data take {round((time.time() - data_time) * 1000, 0)} ms, for {len(data.rows)} instances!")
 
         process_data_time = time.time()
         feature_df = deploy_data_loader(prob_config=self.prob_config, raw_df=raw_data, captured_data_dir=self.path_save_captured, id=data.id, scaler=self.scaler, encoder=self.encoder)
+
+        # duplicate_rows = feature_df.duplicated()
+        # number_of_duplicate_rows = duplicate_rows.sum()
+        # print("The number of duplicate rows is:", number_of_duplicate_rows)
+
         logging.info(f"Process data take {round((time.time() - process_data_time) * 1000, 0)} ms")
 
         predict_time = time.time()
         prediction = self.model.predict(feature_df[self.columns_to_keep])
+        # print(prediction)
         logging.info(f"Predict take {round((time.time() - predict_time) * 1000, 0)} ms")
 
         transform_predict_time = time.time()
@@ -232,7 +246,7 @@ if __name__ == "__main__":
     # predictor_2 = ModelPredictor(config_file_path=prob_2_config_path)
 
     api = PredictorApi(predictor_1, predictor_2, phase_id = ProblemConst.PHASE)
-    # api = PredictorApi(predictor_1, predictor_2, phase_id = "phase-1")
+    # api = PredictorApi(predictor_1, predictor_2, phase_id = "phase-2")
     # app = api.get_app()
     # uvicorn.run("model_predictor:app", host="0.0.0.0", port=args.port, workers=4)
     api.run(port=args.port)
