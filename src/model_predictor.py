@@ -1,12 +1,14 @@
 
 import os
 import yaml
+import sys
 import time
 import mlflow
 import random 
 import json
 import io
 import glob
+import base64
 import logging
 import uvicorn
 import pickle
@@ -14,6 +16,7 @@ import argparse
 import numpy as np
 from utils import *
 import pandas as pd
+import catboost as cb
 from pydantic import BaseModel
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -62,7 +65,8 @@ class ModelPredictor:
 
         # set drifted column
         train_data, _ = load_data(self.prob_config)
-        self.drift_column = train_data["feature2"]
+        self.drift_feature = "feature12"
+        self.ref_column = train_data[self.drift_feature]
 
         print(self.prob_config.prob_resource_path)
 
@@ -90,13 +94,11 @@ class ModelPredictor:
     
     def detect_drift(self, drift_feature) -> int:
         # watch drift between coming requests and training data
-        ref_data = self.drift_column
-        curr_data = drift_feature
 
         # _, p_value = ks_2samp(ref_data, curr_data)
         # return 1 if p_value < 0.9 else 0
     
-        wasserstein = wasserstein_distance(ref_data, curr_data)
+        wasserstein = wasserstein_distance(np.array(self.ref_column).squeeze(), np.array(drift_feature).squeeze())
         return 1 if wasserstein > 0.33 else 0
 
     def predict(self, data: Data):
@@ -105,53 +107,42 @@ class ModelPredictor:
 
         data_time = time.time()
         raw_data = pd.DataFrame(data.rows, columns=data.columns)
-        
-        # duplicate_rows = raw_data.duplicated()
-        # number_of_duplicate_rows = duplicate_rows.sum()
-        # print("The number of duplicate rows is:", number_of_duplicate_rows)
-
         logging.info(f"Load data take {round((time.time() - data_time) * 1000, 0)} ms, for {len(data.rows)} instances!")
 
         process_data_time = time.time()
         feature_df = deploy_data_loader(prob_config=self.prob_config, raw_df=raw_data, captured_data_dir=self.path_save_captured, id=data.id, scaler=self.scaler, encoder=self.encoder)
-
-        # duplicate_rows = feature_df.duplicated()
-        # number_of_duplicate_rows = duplicate_rows.sum()
-        # print("The number of duplicate rows is:", number_of_duplicate_rows)
-
         logging.info(f"Process data take {round((time.time() - process_data_time) * 1000, 0)} ms")
 
         predict_time = time.time()
         prediction = self.model.predict(feature_df[self.columns_to_keep])
-        # print(prediction)
+        prediction = prediction.astype(np.int8)
         logging.info(f"Predict take {round((time.time() - predict_time) * 1000, 0)} ms")
 
         transform_predict_time = time.time()
+        ''' transform numerical label to string label'''
         if self.prob_config.prob_id == 'prob-2' and self.prob_config.phase_id == "phase-3":
-            '''
-            transform numerical label to string label
-            '''
             prediction_list = prediction.squeeze().tolist()
             prediction = [self.inverse_label_mapping[label] for label in prediction_list]
-            prediction = np.array(prediction, dtype=str)
+        else:
+            # Convert the array to a Python list
+            prediction = prediction.tolist()
         logging.info(f"Transform predict take {round((time.time() - transform_predict_time) * 1000, 0)} ms")
         
         drift_detect_time = time.time()
-        is_drifted = self.detect_drift(feature_df["feature2"])
+        is_drifted = self.detect_drift(feature_df[self.drift_feature])
         # is_drifted = 0
         logging.info(f"drift detect take {round((time.time() - drift_detect_time) * 1000, 0)} ms")
 
         run_time = round((time.time() - start_time) * 1000, 0)
         logging.info(f"total prediction takes {run_time} ms")
-
-        # compress_start_time = time.time()
+        
+        # print(f"size of predict list type: {sys.getsizeof(prediction) / 1e3} KB")
+        
         return JSONResponse({
-            "id": data.id,
-            "predictions": prediction.tolist(),
-            "drift": is_drifted
-        })
-        #     "inference time": run_time
-        # })
+                "id": data.id,
+                "predictions": prediction,
+                "drift": is_drifted
+                })
     
 class PredictorApi:
     def __init__(self, predictor_1: ModelPredictor, predictor_2: ModelPredictor, phase_id:str):
@@ -176,6 +167,7 @@ class PredictorApi:
             #     response = executor.submit(self.predictor_1.predict, data).result()
 
             response = self.predictor_1.predict(data)
+            # print(f"size of response: {sys.getsizeof(response) / 1e3} KB")
 
             self._log_response(response)
             return response
@@ -189,6 +181,7 @@ class PredictorApi:
             #     response = executor.submit(self.predictor_2.predict, data).result()
 
             response =  self.predictor_2.predict(data)
+            # print(f"size of response: {sys.getsizeof(response) / 1e3} KB")
             # try:
             #     start_time = response["time start compress"]
             #     logging.info(f"Compress time: {round((time.time() - start_time) * 1000, 0)} ms")
@@ -217,8 +210,7 @@ class PredictorApi:
 
     def run(self, port):
         uvicorn.run(self.app, host="0.0.0.0", port=port)
-43
-app = None
+        
 if __name__ == "__main__":
     prob_1_config_path = (
         AppPath.MODEL_CONFIG_DIR

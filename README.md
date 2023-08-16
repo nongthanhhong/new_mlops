@@ -84,9 +84,9 @@
 
     -   Deploy model predictor
         
-        **Note** Just use one if it, if want to use another, run ```make teardown``` then 
+        **Note** Just use one of it, if want to use another, run ```make teardown``` then 
         - Not using nginx for load balancing
-        - recheck class ProblemConst for ensure phase and prob id. (when phase changed)
+        - recheck class ProblemConst for ensure phase and prob id. (when phase change)
         - add new path to nginx config (new phase)
 
         ```bash

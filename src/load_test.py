@@ -109,7 +109,7 @@ def test_load(url, root_path, num_requests):
   p95_response_time, drift, total_infe_time, predictions = load_test(list_data, url, num_requests)
 
   print(list_label.keys(),  f" - {predictions.keys()}")
-  print(list_label.values(),  f" - {predictions.values()}")
+  # print(list_label.values(),  f" - {predictions.values()}")
 
   print(f"Request take: {round((time.time() - start_time),2)} seconds")
   print(f"The P95 response time is {round(p95_response_time,2)} seconds.")
@@ -118,19 +118,22 @@ def test_load(url, root_path, num_requests):
   # print(f"The AVG inference time is {total_infe_time/num_requests} ms.")
   average_accuracies = calculate_accuracy_for_each_id(list_label, predictions)
   print("Average accuracies:")
+  avg = []
   for id, accuracy in average_accuracies.items():
     print(f"  {id}: {accuracy}")
+    avg.append(accuracy)
+  print(f"AVG: {np.mean(avg)}")
 
 #take list file 
 
 url = 'http://localhost:8000/phase-3/prob-1/predict'
 root_path = "/mnt/e/mlops-marathon/new_mlops/load_test/phase-3/prob-1/*.parquet"
-num_requests = 1
+num_requests = 50
 test_load(url, root_path, num_requests)
 
 url = 'http://localhost:8000/phase-3/prob-2/predict'
 root_path = "/mnt/e/mlops-marathon/new_mlops/load_test/phase-3/prob-2/*.parquet"
-num_requests = 1
+num_requests = 50
 test_load(url, root_path, num_requests)
       
 

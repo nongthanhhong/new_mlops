@@ -106,7 +106,7 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
 
     data_x, data_y = load_data(prob_config)
 
-    # data_x.drop(['feature9', 'feature3', 'feature2', 'feature4'], axis=1, inplace = True)
+    # data_x.drop(['feature9', 'feature4', 'feature2','feature19', 'feature22', 'feature3','feature10', 'feature20', 'feature21','feature30', 'feature40', 'feature35','feature39', 'feature32', 'feature31'], axis=1, inplace = True)
 
     if add_captured_data:
         
@@ -224,24 +224,22 @@ def deploy_data_loader(prob_config: ProblemConfig, raw_df: pd.DataFrame, capture
 
     transform_new_data_time = time.time()
     encoded_data = transform_new_data(prob_config , new_data, encoder = encoder)
-    logging.info(f"transform_new_data_time data take {round((time.time() - transform_new_data_time) * 1000, 0)} ms")
+    logging.info(f"transform_new_data_time take {round((time.time() - transform_new_data_time) * 1000, 0)} ms")
 
-    
     preprocess_data_time = time.time()
     new_data = preprocess_data(prob_config = prob_config, data = encoded_data, mode = 'deploy', deploy_scaler = scaler)
-    logging.info(f"preprocess_data_time data take {round((time.time() - preprocess_data_time) * 1000, 0)} ms")
+    logging.info(f"total preprocess_data take {round((time.time() - preprocess_data_time) * 1000, 0)} ms")
 
-    
-    #generate id for save file
+    #generate name for save file
     generate_id_time = time.time()
     filename = generate_id(id)
-    logging.info(f"generate_id_time data take {round((time.time() - generate_id_time) * 1000, 0)} ms")
+    logging.info(f"generate_name_time take {round((time.time() - generate_id_time) * 1000, 0)} ms")
 
     # save request data for improving models
     save_data_time = time.time()
     output_file_path = os.path.join(captured_data_dir, f"{filename}.parquet")
     raw_df.to_parquet(output_file_path, index=False, engine='pyarrow', compression='snappy')
-    logging.info(f"save_data_time data take {round((time.time() - save_data_time) * 1000, 0)} ms")
+    logging.info(f"save_data take {round((time.time() - save_data_time) * 1000, 0)} ms")
 
     return new_data
 
