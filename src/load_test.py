@@ -127,12 +127,12 @@ def test_load(url, root_path, num_requests):
 #take list file 
 
 url = 'http://localhost:5040/phase-3/prob-1/predict'
-root_path = "/mnt/e/mlops-marathon/new_mlops/load_test/phase-3/prob-1/*.parquet"
+root_path = "load_test/phase-3/prob-1/*.parquet"
 num_requests = 10
 test_load(url, root_path, num_requests)
 
 url = 'http://localhost:5040/phase-3/prob-2/predict'
-root_path = "/mnt/e/mlops-marathon/new_mlops/load_test/phase-3/prob-2/*.parquet"
+root_path = "load_test/phase-3/prob-2/*.parquet"
 num_requests = 10
 test_load(url, root_path, num_requests)
       

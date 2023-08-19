@@ -200,4 +200,4 @@ catboost_info
 
 load_test
 
-test.py
+# test.py
