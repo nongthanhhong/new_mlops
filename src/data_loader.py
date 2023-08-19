@@ -210,7 +210,7 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
         dtest =  cb.Pool(data=test_x, label=test_y)
         return dtrain, dval, dtest, test_x
         
-def deploy_data_loader(prob_config: ProblemConfig, raw_df: pd.DataFrame, captured_data_dir = None, id = None, scaler = None, encoder = None):
+def deploy_data_loader(prob_config: ProblemConfig, raw_df: pd.DataFrame, select_cols = None, captured_data_dir = None, id = None, scaler = None, encoder = None):
 
     """
     Process data for deploy phase
@@ -223,8 +223,8 @@ def deploy_data_loader(prob_config: ProblemConfig, raw_df: pd.DataFrame, capture
     pandas.DataFrame: processed data for predict
     """
     
-    columns_to_keep = prob_config.categorical_cols + prob_config.numerical_cols
-    new_data = raw_df[columns_to_keep].copy()
+    # columns_to_keep = prob_config.categorical_cols + prob_config.numerical_cols
+    new_data = raw_df[select_cols].copy()
 
     transform_new_data_time = time.time()
     encoded_data = transform_new_data(prob_config , new_data, encoder = encoder)
