@@ -36,7 +36,7 @@ def raw_data_process(prob_config: ProblemConfig, flag = "new"):
 
     list_drop_1 = ['feature3', 'feature20', 'feature10', 'feature22', 'feature29', 'feature13', 'feature25', 'feature36', 'feature4', 'feature21', 'feature7', 'feature28', 'feature37', 'feature41', 'feature19', 'feature17', 'feature38', 'feature6', 'feature14', 'feature24', 'feature30', 'feature32', 'feature33', 'feature39', 'feature40']
     list_drop_2 = ['feature3', 'feature20', 'feature10', 'feature22', 'feature29', 'feature13', 'feature25', 'feature36', 'feature4', 'feature21', 'feature7', 'feature28', 'feature37', 'feature41', 'feature19', 'feature17', 'feature38']
-    training_data =  training_data.drop(list_drop_2, axis = 1)
+    training_data =  training_data.drop(list_drop_1, axis = 1)
 
     # training_data = training_data.drop_duplicates().reset_index(drop=True)
 
