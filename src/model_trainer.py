@@ -105,7 +105,7 @@ def evaluate_model(model = None, dtest = None, test_x = None):
 class ModelTrainer:
 
     @staticmethod
-    def train_model(prob_config: ProblemConfig, add_captured_data=False):
+    def train_model(prob_config: ProblemConfig, add_captured_data=False, run_name = None):
 
         #define model
         class_model = Models(prob_config)
@@ -114,9 +114,9 @@ class ModelTrainer:
         logging.info("*****Start training phase*****")
         # init mlflow
         mlflow.set_tracking_uri(AppConfig.MLFLOW_TRACKING_URI)
-        mlflow.set_experiment(
-            f"{prob_config.phase_id}_{prob_config.prob_id}_{class_model.EXPERIMENT_NAME}"
-        )
+        mlflow.set_experiment(f"{prob_config.phase_id}_{prob_config.prob_id}_{class_model.EXPERIMENT_NAME}")
+        if run_name != "Not_set":
+            mlflow.set_tag("mlflow.runName", run_name)
 
         logging.info("==============Load data==============")
 
@@ -253,10 +253,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--add-captured-data", type=lambda x: (str(x).lower() == "true"), default=False
     )
+    parser.add_argument("--name-run", type=str, default="Not_set")
     args = parser.parse_args()
 
     prob_config = get_prob_config(args.phase_id, args.prob_id)
 
     ModelTrainer.train_model(
-        prob_config, add_captured_data=args.add_captured_data
+        prob_config, add_captured_data=args.add_captured_data, run_name=args.name_run
     )

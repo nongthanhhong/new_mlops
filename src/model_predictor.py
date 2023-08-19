@@ -18,11 +18,12 @@ from utils import *
 import pandas as pd
 import catboost as cb
 from pydantic import BaseModel
+from utils import AppConfig, AppPath
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-from utils import AppConfig, AppPath
-from scipy.stats import wasserstein_distance, ks_2samp
+from sklearn.model_selection import train_test_split
 from data_loader import deploy_data_loader, load_data
+from scipy.stats import wasserstein_distance, ks_2samp
 from problem_config import ProblemConst, create_prob_config
 # import httpx
 import concurrent.futures
@@ -64,11 +65,14 @@ class ModelPredictor:
         self.columns_to_keep = feature_names
 
         # set drifted column
-        train_data, _ = load_data(self.prob_config)
-        self.drift_feature = "feature12"
-        self.ref_column = train_data[self.drift_feature]
-
-        print(self.prob_config.prob_resource_path)
+        train_data, train_label = load_data(self.prob_config)
+        _, test_x, _, _ = train_test_split(train_data, train_label,
+                                                            test_size=2000, 
+                                                            random_state=42,
+                                                            stratify= train_label)
+        self.drift_feature = "feature2"
+        self.ref_column = test_x[self.drift_feature]
+        logging.info(self.prob_config.prob_resource_path)
 
         # take label's map
         if self.prob_config.prob_id == 'prob-2' and self.prob_config.phase_id == "phase-3":
@@ -89,8 +93,11 @@ class ModelPredictor:
             raise ValueError(f"Not exist prefitted '{scaler_name}' scaler")
         with open(self.prob_config.prob_resource_path + f"{scaler_name}_scaler.pkl", 'rb') as f:
             self.scaler = pickle.load(f)
-        with open(self.prob_config.prob_resource_path + "encoder.pkl", 'rb') as f:
-            self.encoder = pickle.load(f)
+        
+        cat_columns = self.prob_config.categorical_cols
+        if len(cat_columns) != 0:
+            with open(self.prob_config.prob_resource_path + "encoder.pkl", 'rb') as f:
+                self.encoder = pickle.load(f)
     
     def detect_drift(self, drift_feature) -> int:
         # watch drift between coming requests and training data
@@ -98,15 +105,23 @@ class ModelPredictor:
         # _, p_value = ks_2samp(ref_data, curr_data)
         # return 1 if p_value < 0.9 else 0
     
-        wasserstein = wasserstein_distance(np.array(self.ref_column).squeeze(), np.array(drift_feature).squeeze())
-        return 1 if wasserstein > 0.33 else 0
+        wasserstein = wasserstein_distance(self.ref_column, drift_feature)
+        return 1 if wasserstein > 0.1 else 0
 
     def predict(self, data: Data):
 
         start_time = time.time()
 
         data_time = time.time()
-        raw_data = pd.DataFrame(data.rows, columns=data.columns)
+        # List of columns you are interested in
+        selected_columns = self.columns_to_keep
+        # Get the indices of the selected columns
+        selected_indices = [data.columns.index(col) for col in selected_columns]
+        # Select only the data for the selected columns
+        selected_rows = [[row[i] for i in selected_indices] for row in data.rows]
+        # Create a DataFrame with only the selected columns
+        raw_data = pd.DataFrame(selected_rows, columns=selected_columns)
+        # raw_data = pd.DataFrame(data.rows, columns=data.columns)
         logging.info(f"Load data take {round((time.time() - data_time) * 1000, 0)} ms, for {len(data.rows)} instances!")
 
         process_data_time = time.time()

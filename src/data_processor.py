@@ -28,13 +28,15 @@ def train_encoder(prob_config: ProblemConfig, df: pd.DataFrame):
     Returns:
     pandas.DataFrame: Data that had been encoding using one-hot encoder
     """
-    categorical_cols = prob_config.raw_categorical_cols
-
+    categorical_cols =  list(set(prob_config.raw_categorical_cols) & set(df.columns))
+    if len(categorical_cols) == 0:
+        return df
+    
     # Create a OneHotEncoder object
-    encoder = TargetEncoder()
+    encoder = TargetEncoder(return_df=False)
     
     # Fit the encoder on the training data
-    cat_columns = df[categorical_cols]
+    cat_columns = df[categorical_cols].to_numpy()
     if df[prob_config.target_col].dtypes == 'object':
 
         # Encode the fruit column using the factorize method
@@ -52,25 +54,24 @@ def train_encoder(prob_config: ProblemConfig, df: pd.DataFrame):
         df[prob_config.target_col] = labels
 
     else:
-        target_columns = df[prob_config.target_col]
+        target_columns = df[prob_config.target_col].to_numpy()
 
-    encoder.fit(cat_columns, target_columns)
+    
+    encoded_cols = encoder.fit_transform(cat_columns, target_columns)
     
     # Transform the training data
-    one_hot_df = pd.DataFrame(encoder.transform(df[categorical_cols]),
-                              columns= categorical_cols)
+    encoded_categorical_cols = pd.DataFrame(encoded_cols, columns=categorical_cols)
     
     # Drop the original categorical column
     df = df.drop(categorical_cols, axis=1)
 
     # Concatenate the original DataFrame with the one-hot encoded DataFrame
-    df = pd.concat([df, one_hot_df], axis=1)
+    encoded_df = pd.concat([df, encoded_categorical_cols], axis=1)
     
     # Save the fitted encoder to disk
     with open(prob_config.prob_resource_path + "encoder.pkl", 'wb') as f:
         pickle.dump(encoder, f)
-    
-    return df
+    return encoded_df
 
 def transform_new_data(prob_config: ProblemConfig, new_df: pd.DataFrame, encoder = None):
     """
@@ -84,7 +85,11 @@ def transform_new_data(prob_config: ProblemConfig, new_df: pd.DataFrame, encoder
     pandas.DataFrame: Data that had been encoding using one-hot encoder
     """
 
-    cat_columns = prob_config.raw_categorical_cols
+    cat_columns = prob_config.categorical_cols
+    if len(cat_columns) == 0:
+        return new_df
+    else:
+        return pd.concat([new_df.drop(cat_columns, axis=1), pd.DataFrame(encoder.transform(new_df[cat_columns].to_numpy()), columns=cat_columns)], axis=1)
 
     # Load the saved encoder from disk
 
@@ -95,7 +100,7 @@ def transform_new_data(prob_config: ProblemConfig, new_df: pd.DataFrame, encoder
     # new_df = pd.concat([new_df.drop(cat_columns, axis=1), one_hot_df], axis=1)
 
     # return new_df
-    return pd.concat([new_df.drop(cat_columns, axis=1), pd.DataFrame(encoder.transform(new_df[cat_columns]), columns=cat_columns)], axis=1)
+    
 
 def handle_missing_values_np(data, config):
     data_np = data.to_numpy()

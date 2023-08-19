@@ -33,6 +33,8 @@ def raw_data_process(prob_config: ProblemConfig, flag = "new"):
     os.makedirs(os.path.dirname(prob_config.prob_resource_path), exist_ok=True)
     
     training_data = pd.read_parquet(prob_config.raw_data_path)
+    list_drop = ['feature3', 'feature20', 'feature10', 'feature22', 'feature29', 'feature13', 'feature25', 'feature36', 'feature4', 'feature21', 'feature7', 'feature28', 'feature37', 'feature41', 'feature19', 'feature17', 'feature38', 'feature6', 'feature14', 'feature24', 'feature30', 'feature32', 'feature33', 'feature39', 'feature40']
+    training_data =  training_data.drop(list_drop, axis = 1)
     # training_data = training_data.drop_duplicates().reset_index(drop=True)
 
     logging.info("Encoding categorical columns...")
@@ -105,8 +107,7 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
      # load train data
 
     data_x, data_y = load_data(prob_config)
-
-    # data_x.drop(['feature9', 'feature4', 'feature2','feature19', 'feature22', 'feature3','feature10', 'feature20', 'feature21','feature30', 'feature40', 'feature35','feature39', 'feature32', 'feature31'], axis=1, inplace = True)
+    
 
     if add_captured_data:
         
@@ -233,7 +234,7 @@ def deploy_data_loader(prob_config: ProblemConfig, raw_df: pd.DataFrame, capture
     #generate name for save file
     generate_id_time = time.time()
     filename = generate_id(id)
-    logging.info(f"generate_name_time take {round((time.time() - generate_id_time) * 1000, 0)} ms")
+    logging.info(f"generate_name take {round((time.time() - generate_id_time) * 1000, 0)} ms")
 
     # save request data for improving models
     save_data_time = time.time()
