@@ -33,8 +33,11 @@ def raw_data_process(prob_config: ProblemConfig, flag = "new"):
     os.makedirs(os.path.dirname(prob_config.prob_resource_path), exist_ok=True)
     
     training_data = pd.read_parquet(prob_config.raw_data_path)
-    list_drop = ['feature3', 'feature20', 'feature10', 'feature22', 'feature29', 'feature13', 'feature25', 'feature36', 'feature4', 'feature21', 'feature7', 'feature28', 'feature37', 'feature41', 'feature19', 'feature17', 'feature38', 'feature6', 'feature14', 'feature24', 'feature30', 'feature32', 'feature33', 'feature39', 'feature40']
-    training_data =  training_data.drop(list_drop, axis = 1)
+
+    list_drop_1 = ['feature3', 'feature20', 'feature10', 'feature22', 'feature29', 'feature13', 'feature25', 'feature36', 'feature4', 'feature21', 'feature7', 'feature28', 'feature37', 'feature41', 'feature19', 'feature17', 'feature38', 'feature6', 'feature14', 'feature24', 'feature30', 'feature32', 'feature33', 'feature39', 'feature40']
+    list_drop_2 = ['feature3', 'feature20', 'feature10', 'feature22', 'feature29', 'feature13', 'feature25', 'feature36', 'feature4', 'feature21', 'feature7', 'feature28', 'feature37', 'feature41', 'feature19', 'feature17', 'feature38']
+    training_data =  training_data.drop(list_drop_2, axis = 1)
+    
     # training_data = training_data.drop_duplicates().reset_index(drop=True)
 
     logging.info("Encoding categorical columns...")
