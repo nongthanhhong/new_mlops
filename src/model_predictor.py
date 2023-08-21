@@ -130,7 +130,7 @@ class ModelPredictor:
 
         predict_time = time.time()
         prediction = self.model.predict(feature_df[self.columns_to_keep])
-        prediction = prediction.astype(np.int8)
+        # prediction = prediction.astype(np.int8)
         logging.info(f"Predict take {round((time.time() - predict_time) * 1000, 0)} ms")
 
         transform_predict_time = time.time()
@@ -178,7 +178,7 @@ class PredictorApi:
 
             self._log_request(request)
 
-            # with concurrent.futures.ProcessPoolExecutor(max_workers=4) as executor:
+            # with concurrent.futures.ProcessPoolExecutor(max_workers=20) as executor:
             #     response = executor.submit(self.predictor_1.predict, data).result()
 
             response = self.predictor_1.predict(data)
@@ -192,7 +192,7 @@ class PredictorApi:
 
             self._log_request(request)
             
-            # with concurrent.futures.ProcessPoolExecutor(max_workers=4) as executor:
+            # with concurrent.futures.ProcessPoolExecutor(max_workers=20) as executor:
             #     response = executor.submit(self.predictor_2.predict, data).result()
 
             response =  self.predictor_2.predict(data)
@@ -225,35 +225,37 @@ class PredictorApi:
 
     def run(self, port):
         uvicorn.run(self.app, host="0.0.0.0", port=port)
-        
+
+prob_1_config_path = (
+    AppPath.MODEL_CONFIG_DIR
+    / ProblemConst.PHASE
+    / ProblemConst.PROB1
+    / "model-1.yaml"
+).as_posix()
+
+prob_2_config_path = (
+    AppPath.MODEL_CONFIG_DIR
+    / ProblemConst.PHASE
+    / ProblemConst.PROB2
+    / "model-1.yaml"
+).as_posix()
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--config-path", nargs="+", default=[prob_1_config_path, prob_2_config_path])
+parser.add_argument("--port", type=int, default=PREDICTOR_API_PORT)
+args = parser.parse_args()
+
+predictor_1 = ModelPredictor(config_file_path=args.config_path[0])
+predictor_2 = ModelPredictor(config_file_path=args.config_path[1])
+
+# predictor_1 = ModelPredictor(config_file_path=prob_1_config_path)
+# predictor_2 = ModelPredictor(config_file_path=prob_2_config_path)
+
+api = PredictorApi(predictor_1, predictor_2, phase_id = ProblemConst.PHASE)
+# api = PredictorApi(predictor_1, predictor_2, phase_id = "phase-2")
+app = api.get_app()
+
 if __name__ == "__main__":
-    prob_1_config_path = (
-        AppPath.MODEL_CONFIG_DIR
-        / ProblemConst.PHASE
-        / ProblemConst.PROB1
-        / "model-1.yaml"
-    ).as_posix()
-
-    prob_2_config_path = (
-        AppPath.MODEL_CONFIG_DIR
-        / ProblemConst.PHASE
-        / ProblemConst.PROB2
-        / "model-1.yaml"
-    ).as_posix()
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--config-path", nargs="+", default=[prob_1_config_path, prob_2_config_path])
-    parser.add_argument("--port", type=int, default=PREDICTOR_API_PORT)
-    args = parser.parse_args()
-
-    predictor_1 = ModelPredictor(config_file_path=args.config_path[0])
-    predictor_2 = ModelPredictor(config_file_path=args.config_path[1])
-
-    # predictor_1 = ModelPredictor(config_file_path=prob_1_config_path)
-    # predictor_2 = ModelPredictor(config_file_path=prob_2_config_path)
-
-    api = PredictorApi(predictor_1, predictor_2, phase_id = ProblemConst.PHASE)
-    # api = PredictorApi(predictor_1, predictor_2, phase_id = "phase-2")
-    # app = api.get_app()
-    # uvicorn.run("model_predictor:app", host="0.0.0.0", port=args.port, workers=4)
-    api.run(port=args.port)
+    
+    uvicorn.run("__main__:app", host="0.0.0.0", port=args.port, workers=2)
+    # api.run(port=args.port)

@@ -7,6 +7,7 @@ from tqdm import tqdm
 import glob
 import json
 from threading import Thread
+import sys
 
 # Make sure to have the required libraries installed
 # !pip install pyarrow requests
@@ -50,6 +51,8 @@ def load_test(list_data, url, num_requests):
         futures = []
         for data in tqdm(list_data, ncols=100, desc ="Requesting...", unit ="file"):
             future = executor.submit(send_data_to_server, data, url)
+            print(f"size of predict list type: {sys.getsizeof(future) / 1e3} KB")
+
             futures.append(future)
 
         response_times = []
@@ -103,7 +106,6 @@ def calculate_accuracy_for_each_id(truth_labels, predictions):
 
   return average_accuracies
 
-
 def test_load(url, root_path, num_requests):
 
   list_data, list_label = load_list_data(root_path, num_requests)
@@ -131,13 +133,13 @@ def test_load(url, root_path, num_requests):
 url = 'http://localhost:8000/phase-3/prob-1/predict'
 root_path = "load_test/phase-3/prob-1/*.parquet"
 # root_path = "data_warehouse/captured_data/phase-2//prob-1/13/*.parquet"
-num_requests = 100
+num_requests = 10
 test_load(url, root_path, num_requests)
 
 url = 'http://localhost:8000/phase-3/prob-2/predict'
 root_path = "load_test/phase-3/prob-2/*.parquet"
 # root_path = "data_warehouse/captured_data/phase-2/prob-2/13/*.parquet"
-num_requests = 100
+num_requests = 10
 test_load(url, root_path, num_requests)
       
 
