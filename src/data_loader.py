@@ -34,11 +34,15 @@ def raw_data_process(prob_config: ProblemConfig, flag = "new"):
     
     training_data = pd.read_parquet(prob_config.raw_data_path)
 
-    list_drop_1 = ['feature3', 'feature20', 'feature10', 'feature22', 'feature29', 'feature13', 'feature25', 'feature36', 'feature4', 'feature21', 'feature7', 'feature28', 'feature37', 'feature41', 'feature19', 'feature17', 'feature38', 'feature6', 'feature14', 'feature24', 'feature30', 'feature32', 'feature33', 'feature39', 'feature40']
-    list_drop_2 = ['feature3', 'feature20', 'feature10', 'feature22', 'feature29', 'feature13', 'feature25', 'feature36', 'feature4', 'feature21', 'feature7', 'feature28', 'feature37', 'feature41', 'feature19', 'feature17', 'feature38']
-    training_data =  training_data.drop(list_drop_1, axis = 1)
+    list_drop_1_prob_1 = ['feature3', 'feature4', 'feature6', 'feature7', 'feature10', 'feature13', 'feature14', 'feature17', 'feature19', 'feature20', 'feature21', 'feature22', 'feature23', 'feature25', 'feature28', 'feature29', 'feature32', 'feature33', 'feature35', 'feature36', 'feature37', 'feature38', 'feature39', 'feature40', 'feature41']
+    list_drop_1_prob_2 = ['feature4', 'feature5', 'feature6', 'feature7', 'feature8', 'feature13', 'feature14', 'feature16', 'feature17', 'feature18', 'feature19', 'feature20', 'feature21', 'feature22', 'feature23', 'feature25', 'feature28', 'feature29', 'feature32', 'feature33', 'feature35', 'feature36', 'feature37', 'feature38', 'feature39', 'feature40', 'feature41']
+    # list_drop_2 = ['feature3', 'feature20', 'feature10', 'feature22', 'feature29', 'feature13', 'feature25', 'feature36', 'feature4', 'feature21', 'feature7', 'feature28', 'feature37', 'feature41', 'feature19', 'feature17', 'feature38']
+    if prob_config.prob_id == "prob-1":
+        training_data =  training_data.drop(list_drop_1_prob_1, axis = 1)
+    else: 
+        training_data =  training_data.drop(list_drop_1_prob_2, axis = 1)
 
-    training_data = training_data.drop_duplicates().reset_index(drop=True)
+    # training_data = training_data.drop_duplicates().reset_index(drop=True)
 
     logging.info("Encoding categorical columns...")
     encoded_data = train_encoder(prob_config = prob_config, df = training_data)
@@ -93,6 +97,31 @@ def load_data(prob_config: ProblemConfig):
     data_y = pd.read_parquet(processed_y_path)
     return data_x, data_y[prob_config.target_col]
     
+def OverSampling_SMOTE(train_x, train_y):
+     # smote = SMOTE(sampling_strategy={2: desired_count}, random_state=0)
+    smote = SMOTE(random_state=0)
+
+    # X_resampled, y_resampled = smote.fit_resample(data_x, data_y)
+    agr_train_x, agr_train_y = smote.fit_resample(train_x, train_y)
+
+    logging.info("Checking distribution of new generated dataset...")
+
+    total_dist = 0
+
+    for col in train_x.columns:
+        logging.info(col)
+        # compute the Wasserstein distance
+        wasserstein_dist = wasserstein_distance(train_x[col], agr_train_x[col])
+        print("Wasserstein distance:", wasserstein_dist)
+        # perform the two-sample Kolmogorov-Smirnov test
+        statistic, pvalue = ks_2samp(train_x[col], agr_train_x[col])
+        print("KS statistic:", statistic)
+        print("KS p-value:", pvalue)
+
+        total_dist += wasserstein_dist
+    
+    return agr_train_x, agr_train_y
+
 def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
 
     """
@@ -115,95 +144,45 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
     if add_captured_data:
         
         logging.info("Use captured data and feature selection")
-        captured_x = load_capture_data(prob_config)
+        # captured_x = load_capture_data(prob_config)
         columns = data_x.columns
 
-        #feature selection
-        # logging.info("Selecting features...")
+        sampling_data_x, sampling_data_y = OverSampling_SMOTE(data_x, data_y)
 
-        # selected_columns = feature_selection(data_x = data_x, data_y = data_y, captured_x = captured_x)
-        
-        # data_x = data_x[selected_columns]
-        # captured_x = captured_x[selected_columns]
 
-        # # set weight
-        # logging.info("Calculating sample_weight...")
-        
 
         # split data into training, validation, and test sets
-        # train_x, test_x, train_y, test_y, train_weights, test_weights = train_test_split(data_x, data_y, train_weight, 
-        #                                                                                     test_size=0.1, 
-        #                                                                                     random_state=42,
-        #                                                                                     stratify= data_y)
-        # train_x, val_x, train_y, val_y, train_weights, val_weights = train_test_split(train_x, train_y, train_weights, 
-        #                                                                                 test_size=0.25, 
-        #                                                                                 random_state=42,
-        #                                                                                 stratify= train_y)
-        
-        # dval = cb.Pool(data=val_x, label=val_y, weight=val_weights)
-        # dtest = cb.Pool(data=test_x, label=test_y, weight=test_weights)
-
-        train_x, test_x, train_y, test_y = train_test_split(data_x, data_y,
-                                                            test_size=0.1, 
+        # train_x, test_x, train_y, test_y = train_test_split(sampling_data_x, sampling_data_y,
+        #                                                     test_size=0.2, 
+        #                                                     random_state=42,
+        #                                                     stratify= sampling_data_y)
+        train_x, val_x, train_y, val_y = train_test_split(sampling_data_x, sampling_data_y,
+                                                            test_size=0.2, 
                                                             random_state=42,
-                                                            stratify= data_y)
-        train_x, val_x, train_y, val_y = train_test_split(train_x, train_y,
-                                                            test_size=0.25, 
-                                                            random_state=42,
-                                                            stratify= train_y)
+                                                            stratify= sampling_data_y)
         
-        # smote = SMOTE(sampling_strategy={2: desired_count}, random_state=0)
-        smote = SMOTE(random_state=0)
+        
+        test_x, test_y = data_x, data_y
 
-        # X_resampled, y_resampled = smote.fit_resample(data_x, data_y)
-        agr_train_x, agr_train_y = smote.fit_resample(train_x, train_y)
-
-        logging.info("Checking distribution of new generated dataset...")
-
-        total_dist = 0
-
-        for col in train_x.columns:
-            logging.info(col)
-            # compute the Wasserstein distance
-            wasserstein_dist = wasserstein_distance(train_x[col], agr_train_x[col])
-            print("Wasserstein distance:", wasserstein_dist)
-
-            # perform the two-sample Kolmogorov-Smirnov test
-            statistic, pvalue = ks_2samp(train_x[col], agr_train_x[col])
-            print("KS statistic:", statistic)
-            print("KS p-value:", pvalue)
-
-            total_dist += wasserstein_dist
-            
-        if total_dist < len(train_x.columns)*0.005:
-            logging.info("Use oversampling for training dataset")
-            # create Pool objects for each set with weights
-            dtrain = cb.Pool(data=agr_train_x, label=agr_train_y)
-            dval =  cb.Pool(data=val_x, label=val_y)
-            dtest =  cb.Pool(data=test_x, label=test_y)
-                
-            return dtrain, dval, dtest, test_x, captured_x, agr_train_x, agr_train_y
-        else:
-            logging.info("Not use oversampling for training dataset")
-            # create Pool objects for each set with weights
-            dtrain = cb.Pool(data= train_x, label= train_y)
-            dval =  cb.Pool(data=val_x, label=val_y)
-            dtest =  cb.Pool(data=test_x, label=test_y)
-                
-            return dtrain, dval, dtest, test_x, captured_x, train_x, train_y
-            
+        dtrain = cb.Pool(data=train_x, label=train_y)
+        dval =  cb.Pool(data=val_x, label=val_y)
+        dtest =  cb.Pool(data=test_x, label=test_y)
+        return dtrain, dval, dtest, test_x
+        
 
     else:
         logging.info("Use original data")
         # split data into training, validation, and test sets
-        train_x, test_x, train_y, test_y = train_test_split(data_x, data_y,
-                                                            test_size=0.1, 
+        # train_x, test_x, train_y, test_y = train_test_split(data_x, data_y,
+        #                                                     test_size=0.2, 
+        #                                                     random_state=42,
+        #                                                     stratify= data_y)
+        train_x, val_x, train_y, val_y = train_test_split(data_x, data_y,
+                                                            test_size=0.2, 
                                                             random_state=42,
                                                             stratify= data_y)
-        train_x, val_x, train_y, val_y = train_test_split(train_x, train_y,
-                                                            test_size=0.25, 
-                                                            random_state=42,
-                                                            stratify= train_y)
+        
+        test_x, test_y = data_x, data_y
 
         dtrain = cb.Pool(data=train_x, label=train_y)
         dval =  cb.Pool(data=val_x, label=val_y)

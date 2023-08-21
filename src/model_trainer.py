@@ -80,11 +80,12 @@ def evaluate_model(model = None, dtest = None, test_x = None):
     
     # Calculate the ROC AUC score
     if len(np.unique(dtest.get_label()))>2:
-        # Compute the ROC AUC score using the one-vs-one approach
-        roc_auc = roc_auc_score(dtest.get_label(), probs_prediction, multi_class='ovo')
-
-        # Compute the ROC AUC score using the one-vs-rest approach
-        # roc_auc = roc_auc_score(dtest.get_label(), predictions, multi_class='ovr')
+        try:
+            # Compute the ROC AUC score using the one-vs-one approach
+            roc_auc = roc_auc_score(dtest.get_label(), probs_prediction, multi_class='ovo')
+        except:
+            # Compute the ROC AUC score using the one-vs-rest approach
+            roc_auc = roc_auc_score(dtest.get_label(), predictions, multi_class='ovr')
     else:
         roc_auc = roc_auc_score(dtest.get_label(), predictions)
         
@@ -120,10 +121,12 @@ class ModelTrainer:
 
         logging.info("==============Load data==============")
 
-        if add_captured_data:
-            dtrain, dval, dtest, test_x, captured_x, train_x, train_y = train_data_loader(prob_config = prob_config, add_captured_data = add_captured_data)
-        else:
-            dtrain, dval, dtest, test_x = train_data_loader(prob_config = prob_config, add_captured_data = add_captured_data)
+        # if add_captured_data:
+        #     dtrain, dval, dtest, test_x, captured_x, train_x, train_y = train_data_loader(prob_config = prob_config, add_captured_data = add_captured_data)
+        # else:
+        #     dtrain, dval, dtest, test_x = train_data_loader(prob_config = prob_config, add_captured_data = add_captured_data)
+
+        dtrain, dval, dtest, test_x = train_data_loader(prob_config = prob_config, add_captured_data = add_captured_data)
 
         print(f'Loaded {dtrain.shape[0]} Train samples, {dval.shape[0]} val samples , and {dtest.shape[0]} test samples!')
     
@@ -142,81 +145,81 @@ class ModelTrainer:
 
         metrics, predictions, probs_prediction = evaluate_model(model = model, dtest = dtest, test_x = test_x)
 
-        logging.info("=================Retrain model with cost matrix======================")
+        # logging.info("=================Retrain model with cost matrix======================")
         
-        # calculate the confusion matrix
-        cm = confusion_matrix(dtest.get_label(), predictions)
+        # # calculate the confusion matrix
+        # cm = confusion_matrix(dtest.get_label(), predictions)
 
-        # calculate the misclassification costs
-        # create the cost matrix
-        cost_matrix = np.zeros((cm.shape[0], cm.shape[1]))
-        for i in range(cm.shape[0]):
-            row_sum = sum(cm[i])
-            for j in range(cm.shape[1]):
-                if i != j:
-                    cost_matrix[i][j] = cm[i][j] / row_sum
+        # # calculate the misclassification costs
+        # # create the cost matrix
+        # cost_matrix = np.zeros((cm.shape[0], cm.shape[1]))
+        # for i in range(cm.shape[0]):
+        #     row_sum = sum(cm[i])
+        #     for j in range(cm.shape[1]):
+        #         if i != j:
+        #             cost_matrix[i][j] = cm[i][j] / row_sum
 
-        weights_1 = np.mean(cost_matrix, axis=1)
-        print(weights_1)
+        # weights_1 = np.mean(cost_matrix, axis=1)
+        # print(weights_1)
 
-        classes = np.unique(dtrain.get_label())
-        weights_2 = compute_class_weight(class_weight='balanced', classes=classes, y=dtrain.get_label())
-        print(weights_2)
+        # classes = np.unique(dtrain.get_label())
+        # weights_2 = compute_class_weight(class_weight='balanced', classes=classes, y=dtrain.get_label())
+        # print(weights_2)
 
-        weights = [x + y for x, y in zip(weights_1, weights_2)]
+        # weights = [x + y for x, y in zip(weights_1, weights_2)]
         
-        # initialize the CatBoostClassifier with the cost matrix
-        class_weights = dict(zip(classes, weights))
+        # # initialize the CatBoostClassifier with the cost matrix
+        # class_weights = dict(zip(classes, weights))
         
-        key_to_exclude = 'auto_class_weights'
+        # key_to_exclude = 'auto_class_weights'
 
-        new_params = {key: value for key, value in class_model.params.items() if key != key_to_exclude}
-        model = cb.CatBoostClassifier(**new_params, class_weights=class_weights)
+        # new_params = {key: value for key, value in class_model.params.items() if key != key_to_exclude}
+        # model = cb.CatBoostClassifier(**new_params, class_weights=class_weights)
 
-        # train the model
-        model.fit(dtrain, 
-                  eval_set=dval,
-                  **class_model.train)
+        # # train the model
+        # model.fit(dtrain, 
+        #           eval_set=dval,
+        #           **class_model.train)
         
-        logging.info("==============Testing new model==============")
+        # logging.info("==============Testing new model==============")
 
-        metrics, predictions, probs_prediction = evaluate_model(model = model, dtest = dtest, test_x = test_x)
+        # metrics, predictions, probs_prediction = evaluate_model(model = model, dtest = dtest, test_x = test_x)
 
-        if add_captured_data:
-            logging.info("==============Improve use Active learning==============")
+        # if add_captured_data:
+        #     logging.info("==============Improve use Active learning==============")
 
-            unlabeled_data = captured_x.copy()
+        #     unlabeled_data = captured_x.copy()
             
-            logging.disable(logging.CRITICAL)
-            loop = 0
+        #     logging.disable(logging.CRITICAL)
+        #     loop = 0
 
-            while loop < 10 and len(unlabeled_data) != 0:
-                probs_prediction = model.predict_proba(unlabeled_data)
+        #     while loop < 10 and len(unlabeled_data) != 0:
+        #         probs_prediction = model.predict_proba(unlabeled_data)
                 
                 
-                # Select the most informative unlabeled data points
-                most_informative_data = unlabeled_data[(probs_prediction.max(axis=1) > 0.9) | (probs_prediction.min(axis=1) < 0.1)]
-                most_informative_predictions = model.predict(most_informative_data)
+        #         # Select the most informative unlabeled data points
+        #         most_informative_data = unlabeled_data[(probs_prediction.max(axis=1) > 0.9) | (probs_prediction.min(axis=1) < 0.1)]
+        #         most_informative_predictions = model.predict(most_informative_data)
                 
-                train_x = pd.concat([train_x, most_informative_data ])
-                train_y = pd.concat([train_y, pd.DataFrame(most_informative_predictions) ])
+        #         train_x = pd.concat([train_x, most_informative_data ])
+        #         train_y = pd.concat([train_y, pd.DataFrame(most_informative_predictions) ])
                 
 
-                unlabeled_data.drop(index=most_informative_data.index, inplace=True)
-                unlabeled_data.reset_index(drop=True, inplace=True)
+        #         unlabeled_data.drop(index=most_informative_data.index, inplace=True)
+        #         unlabeled_data.reset_index(drop=True, inplace=True)
                 
-                unlabeled_data.info()
+        #         unlabeled_data.info()
 
-                dtrain = cb.Pool(data=train_x, label=train_y)
-                # model = class_model.model
+        #         dtrain = cb.Pool(data=train_x, label=train_y)
+        #         # model = class_model.model
 
-                model.fit(dtrain, 
-                  eval_set=dval,
-                  **class_model.train)
+        #         model.fit(dtrain, 
+        #           eval_set=dval,
+        #           **class_model.train)
 
-            logging.disable(logging.NOTSET)   
+        #     logging.disable(logging.NOTSET)   
 
-            metrics, predictions, probs_prediction = evaluate_model(model = model, dtest = dtest, test_x = test_x) 
+        #     metrics, predictions, probs_prediction = evaluate_model(model = model, dtest = dtest, test_x = test_x) 
 
         logging.info("==============Improve use CalibratedClassifierCV model==============")
 

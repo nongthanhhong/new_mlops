@@ -9,13 +9,11 @@
         "early_stopping_rounds": 100
     },
     "params": {
-        "n_estimators" : 5000,
-        "depth": 12,    
+        "n_estimators" : 1000,
+        "depth": 12,
         "auto_class_weights": "Balanced",
-        "custom_metric": ["AUC", "Logloss", "TotalF1", "Accuracy"],
-        "learning_rate" : 0.01,
-        "subsample" : 0.4,
-        "l2_leaf_reg": 3,
+        "subsample" : 0.5,
+        "l2_leaf_reg": 1,
         "eval_metric": "AUC"
         
     }

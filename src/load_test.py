@@ -22,12 +22,15 @@ def load_list_data(root_path, num_requests):
     for file_path in tqdm(glob.glob(root_path), ncols=100, desc ="Loading...", unit ="file"):
             
             test_data = read_parquet(file_path)
-            features = test_data.drop(["label"], axis =1)
+            if "label" in test_data.columns:
+              features = test_data.drop(["label"], axis =1)
+              list_label[str(id)] = test_data["label"].to_numpy()
+            else:
+              features = test_data
+              list_label[str(id)] = np.zeros(len(features))
+               
             columns =  features.columns.to_list()
-            
             list_data.append( {"id": str(id), "rows": features.to_numpy().tolist(), "columns": columns})
-
-            list_label[str(id)] = test_data["label"].to_numpy()
             
             if id == num_requests:
                 break
@@ -125,15 +128,16 @@ def test_load(url, root_path, num_requests):
   print(f"AVG: {np.mean(avg)}")
 
 #take list file 
-
-url = 'http://localhost:5040/phase-3/prob-1/predict'
+url = 'http://localhost:8000/phase-3/prob-1/predict'
 root_path = "load_test/phase-3/prob-1/*.parquet"
-num_requests = 10
+# root_path = "data_warehouse/captured_data/phase-2//prob-1/13/*.parquet"
+num_requests = 100
 test_load(url, root_path, num_requests)
 
-url = 'http://localhost:5040/phase-3/prob-2/predict'
+url = 'http://localhost:8000/phase-3/prob-2/predict'
 root_path = "load_test/phase-3/prob-2/*.parquet"
-num_requests = 10
+# root_path = "data_warehouse/captured_data/phase-2/prob-2/13/*.parquet"
+num_requests = 100
 test_load(url, root_path, num_requests)
       
 
