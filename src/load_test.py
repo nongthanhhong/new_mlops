@@ -133,22 +133,23 @@ def test_load(url, root_path, num_requests):
 import argparse
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
+  parser.add_argument("--num-requests", type=int, default=10)
   parser.add_argument("--port", type=int, default="8000")
   args = parser.parse_args()
   #take list file 
   # url = 'http://localhost:8000/phase-3/prob-1/predict'
   
+  num_requests = args.num_requests
   url = f'http://localhost:{args.port}/phase-3/prob-1/predict'
   root_path = "load_test/phase-3/prob-1/*.parquet"
   # root_path = "data_warehouse/captured_data/phase-2//prob-1/13/*.parquet"
-  num_requests = 90
   test_load(url, root_path, num_requests)
 
   # url = 'http://localhost:8000/phase-3/prob-2/predict'
   url = f'http://localhost:{args.port}/phase-3/prob-2/predict'
   root_path = "load_test/phase-3/prob-2/*.parquet"
   # root_path = "data_warehouse/captured_data/phase-2/prob-2/13/*.parquet"
-  num_requests = 90
+  
   test_load(url, root_path, num_requests)
         
 
