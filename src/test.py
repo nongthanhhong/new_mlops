@@ -229,7 +229,7 @@ if __name__ == "__main__":
   parquet_file = "data_warehouse/raw_data/phase-3/prob-1/raw_train.parquet"
   output_folder = "load_test/phase-3/prob-1"
 
-  num_splits = 97
+  num_splits = 95
 
   split_files = split_parquet_file_with_pandas(parquet_file, output_folder, num_splits)
   print("Split parquet file into", len(split_files), "files.")
@@ -237,7 +237,7 @@ if __name__ == "__main__":
   parquet_file = "data_warehouse/raw_data/phase-3/prob-2/raw_train.parquet"
   output_folder = "load_test/phase-3/prob-2"
 
-  num_splits = 97
+  num_splits = 95
 
   split_files = split_parquet_file_with_pandas(parquet_file, output_folder, num_splits)
   print("Split parquet file into", len(split_files), "files.")
