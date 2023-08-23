@@ -257,5 +257,6 @@ app = api.get_app()
 
 if __name__ == "__main__":
     
-    uvicorn.run("__main__:app", host="0.0.0.0", port=args.port, workers=2)
+    # uvicorn.run("__main__:app", host="0.0.0.0", port=args.port, workers=2)
+    uvicorn.run("__main__:app", host="0.0.0.0", port=args.port)
     # api.run(port=args.port)
