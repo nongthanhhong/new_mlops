@@ -147,22 +147,23 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
         # captured_x = load_capture_data(prob_config)
         columns = data_x.columns
 
-        sampling_data_x, sampling_data_y = OverSampling_SMOTE(data_x, data_y)
-
 
 
         # split data into training, validation, and test sets
-        # train_x, test_x, train_y, test_y = train_test_split(sampling_data_x, sampling_data_y,
-        #                                                     test_size=0.2, 
-        #                                                     random_state=42,
-        #                                                     stratify= sampling_data_y)
+        train_x, test_x, train_y, test_y = train_test_split(data_x, data_y,
+                                                            test_size=0.1, 
+                                                            random_state=42,
+                                                            stratify= data_y)
+
+        sampling_data_x, sampling_data_y = OverSampling_SMOTE(train_x, train_y)
+
         train_x, val_x, train_y, val_y = train_test_split(sampling_data_x, sampling_data_y,
                                                             test_size=0.2, 
                                                             random_state=42,
                                                             stratify= sampling_data_y)
         
         
-        test_x, test_y = data_x, data_y
+        # test_x, test_y = data_x, data_y
 
         dtrain = cb.Pool(data=train_x, label=train_y)
         dval =  cb.Pool(data=val_x, label=val_y)
@@ -173,16 +174,16 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
     else:
         logging.info("Use original data")
         # split data into training, validation, and test sets
-        # train_x, test_x, train_y, test_y = train_test_split(data_x, data_y,
-        #                                                     test_size=0.2, 
-        #                                                     random_state=42,
-        #                                                     stratify= data_y)
-        train_x, val_x, train_y, val_y = train_test_split(data_x, data_y,
-                                                            test_size=0.2, 
+        train_x, test_x, train_y, test_y = train_test_split(data_x, data_y,
+                                                            test_size=0.1, 
                                                             random_state=42,
                                                             stratify= data_y)
+        train_x, val_x, train_y, val_y = train_test_split(train_x, train_y,
+                                                            test_size=0.2, 
+                                                            random_state=42,
+                                                            stratify= train_y)
         
-        test_x, test_y = data_x, data_y
+        # test_x, test_y = data_x, data_y
 
         dtrain = cb.Pool(data=train_x, label=train_y)
         dval =  cb.Pool(data=val_x, label=val_y)

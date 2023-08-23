@@ -5,12 +5,13 @@
     },
     "train": {
         "use_best_model": true, 
-        "verbose": 50, 
+        "verbose": 100, 
         "early_stopping_rounds": 100
     },
     "params": {
-        "n_estimators" : 1000,
-        "depth": 12,
-        "eval_metric": "Accuracy"
+        "n_estimators" : 5000,
+        "depth": 5,
+        "learning_rate" : 0.0678,
+        "eval_metric":"Accuracy"
     }
 }
