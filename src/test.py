@@ -226,14 +226,21 @@ def split_parquet_file_with_pandas(parquet_file, output_folder, num_splits):
 
 
 if __name__ == "__main__":
-  parquet_file = "data_warehouse/raw_data/phase-3/prob-2/raw_train.parquet"
-  output_folder = "load_test/phase-3/prob-2"
+  parquet_file = "data_warehouse/raw_data/phase-3/prob-1/raw_train.parquet"
+  output_folder = "load_test/phase-3/prob-1"
 
-  num_splits = 100
+  num_splits = 97
 
   split_files = split_parquet_file_with_pandas(parquet_file, output_folder, num_splits)
   print("Split parquet file into", len(split_files), "files.")
-  # with open("/mnt/e/mlops-marathon/new_mlops/prob_resource/phase-3/prob-2/label_mapping.pickle", 'rb') as f:
-  #   label_mapping = pickle.load(f)
-  # print(label_mapping)
+
+  parquet_file = "data_warehouse/raw_data/phase-3/prob-2/raw_train.parquet"
+  output_folder = "load_test/phase-3/prob-2"
+
+  num_splits = 97
+
+  split_files = split_parquet_file_with_pandas(parquet_file, output_folder, num_splits)
+  print("Split parquet file into", len(split_files), "files.")
+
+
 
