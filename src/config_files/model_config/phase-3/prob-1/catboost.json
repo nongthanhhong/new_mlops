@@ -4,7 +4,7 @@
 
     },
     "params": {
-        "n_estimators" : 2000,
+        "n_estimators" : 100,
         "depth": 7,
         "loss_function": "Logloss",
         "learning_rate" : 0.08,
