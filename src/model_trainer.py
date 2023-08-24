@@ -159,7 +159,7 @@ class ModelTrainer:
         scores = cross_validate(clf, data_x, data_y, scoring=scoring, cv=cv, n_jobs=-1)
 
         # print results
-        for k,v in scores:
+        for k,v in scores.items():
             print(f"{k} - {v}")
             print(f'Mean {k}: {mean(v)}')
 
