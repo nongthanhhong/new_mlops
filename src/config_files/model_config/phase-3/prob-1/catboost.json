@@ -3,17 +3,14 @@
         "model_name": "catboost"
 
     },
-    "train": {
-        "use_best_model": true, 
-        "verbose": 100, 
-        "early_stopping_rounds": 50
-    },
     "params": {
-        "n_estimators" : 5000,
+        "n_estimators" : 2000,
         "depth": 7,
         "loss_function": "Logloss",
         "learning_rate" : 0.08,
-        "eval_metric": "AUC"
-        
+        "eval_metric": "AUC",
+        "verbose": 100, 
+        "early_stopping_rounds": 100
     }
+    
 }

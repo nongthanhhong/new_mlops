@@ -20,13 +20,22 @@ from data_loader import train_data_loader
 from problem_config import (ProblemConfig,
                             ProblemConst,
                             get_prob_config)
+from numpy import mean
+from sklearn.model_selection import cross_val_score, cross_validate
+from sklearn.model_selection import RepeatedStratifiedKFold
+from catboost import CatBoostClassifier
+from imblearn.pipeline import Pipeline
+from imblearn.over_sampling import SMOTE
+from imblearn.under_sampling import RandomUnderSampler
+
+from data_loader import load_data
+
 
 
 from utils import AppConfig
 
 def load(**kwargs):
     return {k: load(**v) if isinstance(v, dict) else v for k, v in kwargs.items()}
-
 
 class Models:
     def __init__(self, prob_config):
@@ -48,7 +57,6 @@ class Models:
         config = self.read_config(config_path)
         self.EXPERIMENT_NAME = config["meta_data"]["model_name"]
         self.params = config["params"]
-        self.train = config["train"]
         return config
 
     def xgb_classifier(self):
@@ -58,7 +66,6 @@ class Models:
     def catboost_classifier(self):
         config = self.get_config("catboost")
         self.model = catboost.CatBoostClassifier(**self.params)
-
 
 def show_proportion(task, labels):
     counter = Counter(labels)
@@ -102,7 +109,6 @@ def evaluate_model(model = None, dtest = None, test_x = None):
 
     return metrics, predictions, probs_prediction
 
-
 class ModelTrainer:
 
     @staticmethod
@@ -121,69 +127,47 @@ class ModelTrainer:
 
         logging.info("==============Load data==============")
 
-        # if add_captured_data:
-        #     dtrain, dval, dtest, test_x, captured_x, train_x, train_y = train_data_loader(prob_config = prob_config, add_captured_data = add_captured_data)
-        # else:
-        #     dtrain, dval, dtest, test_x = train_data_loader(prob_config = prob_config, add_captured_data = add_captured_data)
+        # dtrain, dval, dtest, test_x = train_data_loader(prob_config = prob_config, add_captured_data = add_captured_data)
 
-        dtrain, dval, dtest, test_x = train_data_loader(prob_config = prob_config, add_captured_data = add_captured_data)
+        # print(f'Loaded {dtrain.shape[0]} Train samples, {dval.shape[0]} val samples , and {dtest.shape[0]} test samples!')
+        # show_proportion("training", dtrain.get_label())
+        # show_proportion("validating", dval.get_label())
+        # show_proportion("testing", dtest.get_label())
 
-        print(f'Loaded {dtrain.shape[0]} Train samples, {dval.shape[0]} val samples , and {dtest.shape[0]} test samples!')
-    
-        show_proportion("training", dtrain.get_label())
-        show_proportion("validating", dval.get_label())
-        show_proportion("testing", dtest.get_label())
+        data_x, data_y = load_data(prob_config)
+        show_proportion("Training data", data_y)
         
         logging.info("==============Training model==============")
         
         model = class_model.model
-        model.fit(dtrain, 
-                  eval_set=dval,
-                  **class_model.train)
         
+
+        # define pipeline
+        over = SMOTE(random_state=0)
+        under = RandomUnderSampler(random_state=0)
+        steps = [('over', over), ('under', under), ('model', model)]
+        pipeline = Pipeline(steps=steps)
+
+        # define calibrated classifier
+        clf = CalibratedClassifierCV(pipeline)
+
+        # define scoring metrics
+        scoring = {'roc_auc': 'roc_auc', 'accuracy': 'accuracy', 'f1': 'f1'}
+
+        # evaluate pipeline
+        cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=3, random_state=1)
+        scores = cross_validate(clf, data_x, data_y, scoring=scoring, cv=cv, n_jobs=-1)
+
+        # print results
+        print('Mean ROC AUC: %.3f' % mean(scores['roc_auc']))
+        print('Mean accuracy: %.3f' % mean(scores['accuracy']))
+        print('Mean f1: %.3f' % mean(scores['f1']))
+
+
+
         logging.info("==============Testing model==============")
 
         metrics, predictions, probs_prediction = evaluate_model(model = model, dtest = dtest, test_x = test_x)
-
-        # logging.info("=================Retrain model with cost matrix======================")
-        
-        # # calculate the confusion matrix
-        # cm = confusion_matrix(dtest.get_label(), predictions)
-
-        # # calculate the misclassification costs
-        # # create the cost matrix
-        # cost_matrix = np.zeros((cm.shape[0], cm.shape[1]))
-        # for i in range(cm.shape[0]):
-        #     row_sum = sum(cm[i])
-        #     for j in range(cm.shape[1]):
-        #         if i != j:
-        #             cost_matrix[i][j] = cm[i][j] / row_sum
-
-        # weights_1 = np.mean(cost_matrix, axis=1)
-        # print(weights_1)
-
-        # classes = np.unique(dtrain.get_label())
-        # weights_2 = compute_class_weight(class_weight='balanced', classes=classes, y=dtrain.get_label())
-        # print(weights_2)
-
-        # weights = [x + y for x, y in zip(weights_1, weights_2)]
-        
-        # # initialize the CatBoostClassifier with the cost matrix
-        # class_weights = dict(zip(classes, weights))
-        
-        # key_to_exclude = 'auto_class_weights'
-
-        # new_params = {key: value for key, value in class_model.params.items() if key != key_to_exclude}
-        # model = cb.CatBoostClassifier(**new_params, class_weights=class_weights)
-
-        # # train the model
-        # model.fit(dtrain, 
-        #           eval_set=dval,
-        #           **class_model.train)
-        
-        # logging.info("==============Testing new model==============")
-
-        # metrics, predictions, probs_prediction = evaluate_model(model = model, dtest = dtest, test_x = test_x)
 
         # if add_captured_data:
         #     logging.info("==============Improve use Active learning==============")
@@ -221,20 +205,6 @@ class ModelTrainer:
 
         #     metrics, predictions, probs_prediction = evaluate_model(model = model, dtest = dtest, test_x = test_x) 
 
-        logging.info("==============Improve use CalibratedClassifierCV model==============")
-
-        # Assume that `X_test` and `y_test` are the test data and labels
-        # Assume that `clf` is a trained binary classifier with a `predict_proba` method
-        
-        print(f"Previous log loss: {metrics['log_loss']:.3f}")
-
-        # Calibrate the predicted probabilities using isotonic regression
-        calibrator = CalibratedClassifierCV(model, cv='prefit', method='isotonic')
-        calibrator.fit(test_x, dtest.get_label())
-        
-        model = calibrator
-        
-        metrics, predictions, probs_prediction = evaluate_model(model = model, dtest = dtest, test_x = test_x)
         
         # mlflow log
         mlflow.log_params(model.get_params())
