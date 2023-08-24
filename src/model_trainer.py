@@ -159,10 +159,9 @@ class ModelTrainer:
         scores = cross_validate(clf, data_x, data_y, scoring=scoring, cv=cv, n_jobs=-1)
 
         # print results
-        print(scores)
-        print('Mean ROC AUC: %.3f' % mean(scores['roc_auc']))
-        print('Mean accuracy: %.3f' % mean(scores['accuracy']))
-        print('Mean f1: %.3f' % mean(scores['f1']))
+        for k,v in scores:
+            print(f"{k} - {v}")
+            print(f'Mean {k}: {mean(v)}')
 
 
 
