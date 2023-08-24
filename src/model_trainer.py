@@ -157,6 +157,7 @@ class ModelTrainer:
         # evaluate pipeline
         cv = RepeatedStratifiedKFold(n_splits=2, n_repeats=2, random_state=0)
         scores = cross_validate(clf, data_x, data_y, scoring=scoring, cv=cv, n_jobs=-1)
+        best_model = cv.best_estimator_
 
         # print results
         for k,v in scores.items():
@@ -167,7 +168,7 @@ class ModelTrainer:
 
         logging.info("==============Testing model==============")
 
-        metrics, predictions, probs_prediction = evaluate_model(model = model, test_data=data_x, test_label=data_y)
+        metrics, predictions, probs_prediction = evaluate_model(model = best_model, test_data=data_x, test_label=data_y)
         return
 
         # if add_captured_data:
