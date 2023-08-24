@@ -155,10 +155,11 @@ class ModelTrainer:
         scoring = {'roc_auc': 'roc_auc', 'accuracy': 'accuracy', 'f1': 'f1'}
 
         # evaluate pipeline
-        cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=3, random_state=1)
+        cv = RepeatedStratifiedKFold(n_splits=2, n_repeats=2, random_state=0)
         scores = cross_validate(clf, data_x, data_y, scoring=scoring, cv=cv, n_jobs=-1)
 
         # print results
+        print(scores)
         print('Mean ROC AUC: %.3f' % mean(scores['roc_auc']))
         print('Mean accuracy: %.3f' % mean(scores['accuracy']))
         print('Mean f1: %.3f' % mean(scores['f1']))
