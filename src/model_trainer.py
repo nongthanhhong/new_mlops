@@ -73,39 +73,39 @@ def show_proportion(task, labels):
     for label in np.unique(labels):
         logging.info(f'label {label}: {counter[label]} - {100*counter[label]/sum(counter.values())}%')
 
-def evaluate_model(model = None, dtest = None, test_x = None):
+def evaluate_model(model = None, test_data = None, test_label = None):
 
-    probs_prediction = model.predict_proba(test_x)
+    probs_prediction = model.predict_proba(test_data)
 
-    count = len(test_x[probs_prediction.max(axis=1) > 0.8])
+    count = len(test_data[probs_prediction.max(axis=1) > 0.8])
     percentage = (count / len(probs_prediction)) * 100
     # avg_prob = np.mean(probs_prediction)
 
     start_time = time.time()
-    predictions = model.predict(test_x)
+    predictions = model.predict(test_data)
     predict_time = round((time.time() - start_time) * 1000,2) #at ms
     
     # Calculate the ROC AUC score
-    if len(np.unique(dtest.get_label()))>2:
+    if len(np.unique(test_label))>2:
         try:
             # Compute the ROC AUC score using the one-vs-one approach
-            roc_auc = roc_auc_score(dtest.get_label(), probs_prediction, multi_class='ovo')
+            roc_auc = roc_auc_score(test_label, probs_prediction, multi_class='ovo')
         except:
             # Compute the ROC AUC score using the one-vs-rest approach
-            roc_auc = roc_auc_score(dtest.get_label(), predictions, multi_class='ovr')
+            roc_auc = roc_auc_score(test_label, predictions, multi_class='ovr')
     else:
-        roc_auc = roc_auc_score(dtest.get_label(), predictions)
+        roc_auc = roc_auc_score(test_label, predictions)
         
-    log_loss_score = log_loss(dtest.get_label(), probs_prediction)
+    log_loss_score = log_loss(test_label, probs_prediction)
 
-    acc_score = accuracy_score(dtest.get_label(), predictions)
+    acc_score = accuracy_score(test_label, predictions)
 
-    metrics = {"test_auc": roc_auc, "log_loss": log_loss_score, "test_acc": acc_score, "percent_prob": percentage, "predict_time_ms": predict_time/len(test_x)}
+    metrics = {"test_auc": roc_auc, "log_loss": log_loss_score, "test_acc": acc_score, "percent_prob": percentage, "predict_time_ms": predict_time/len(test_data)}
     
     logging.info(f"metrics: {metrics}")
-    logging.info("\n" + classification_report(dtest.get_label(), predictions))
-    logging.info("\n" + str(confusion_matrix(dtest.get_label(), predictions)))
-    logging.info(f"\nPredict take {predict_time} ms for {len(test_x)} samples - AVG {predict_time/len(test_x)} ms each.")
+    logging.info("\n" + classification_report(test_label, predictions))
+    logging.info("\n" + str(confusion_matrix(test_label, predictions)))
+    logging.info(f"\nPredict take {predict_time} ms for {len(test_data)} samples - AVG {predict_time/len(test_data)} ms each.")
 
     return metrics, predictions, probs_prediction
 
@@ -167,7 +167,8 @@ class ModelTrainer:
 
         logging.info("==============Testing model==============")
 
-        metrics, predictions, probs_prediction = evaluate_model(model = model, dtest = dtest, test_x = test_x)
+        metrics, predictions, probs_prediction = evaluate_model(model = model, test_data=data_x, test_label=data_y)
+        return
 
         # if add_captured_data:
         #     logging.info("==============Improve use Active learning==============")
