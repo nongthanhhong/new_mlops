@@ -28,9 +28,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     entrypoint: /bin/sh -c "python src/model_predictor.py --config-path ${MODEL_1_CONFIG_PATH} ${MODEL_2_CONFIG_PATH} --port 8000"
-
-    ports:
-      - "8000:8000"
+    
 
   model_predictor_2:
     # Configuration for your second model_predictor instance goes here
@@ -51,9 +49,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     entrypoint: /bin/sh -c "python src/model_predictor.py --config-path ${MODEL_1_CONFIG_PATH} ${MODEL_2_CONFIG_PATH} --port 8000"
-
-    ports:
-      - "8001:8000"
+    
 
   model_predictor_3:
     # Configuration for your third model_predictor instance goes here
@@ -74,9 +70,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     entrypoint: /bin/sh -c "python src/model_predictor.py --config-path ${MODEL_1_CONFIG_PATH} ${MODEL_2_CONFIG_PATH} --port 8000"
-
-    ports:
-      - "8002:8000"
+    
 
   model_predictor_4:
     # Configuration for your third model_predictor instance goes here
@@ -97,9 +91,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     entrypoint: /bin/sh -c "python src/model_predictor.py --config-path ${MODEL_1_CONFIG_PATH} ${MODEL_2_CONFIG_PATH} --port 8000"
-
-    ports:
-      - "8003:8000"
+    
   
   model_predictor_5:
     # Configuration for your third model_predictor instance goes here
@@ -120,9 +112,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     entrypoint: /bin/sh -c "python src/model_predictor.py --config-path ${MODEL_1_CONFIG_PATH} ${MODEL_2_CONFIG_PATH} --port 8000"
-
-    ports:
-      - "8004:8000"
+    
 
   model_predictor_6:
     # Configuration for your third model_predictor instance goes here
@@ -143,9 +133,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     entrypoint: /bin/sh -c "python src/model_predictor.py --config-path ${MODEL_1_CONFIG_PATH} ${MODEL_2_CONFIG_PATH} --port 8000"
-
-    ports:
-      - "8005:8000"
+    
 
   model_predictor_7:
     # Configuration for your third model_predictor instance goes here
@@ -166,9 +154,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     entrypoint: /bin/sh -c "python src/model_predictor.py --config-path ${MODEL_1_CONFIG_PATH} ${MODEL_2_CONFIG_PATH} --port 8000"
-
-    ports:
-      - "8006:8000"
+    
 
   model_predictor_8:
     # Configuration for your third model_predictor instance goes here
@@ -189,9 +175,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     entrypoint: /bin/sh -c "python src/model_predictor.py --config-path ${MODEL_1_CONFIG_PATH} ${MODEL_2_CONFIG_PATH} --port 8000"
-
-    ports:
-      - "8007:8000"
+    
 
 
   # model_predictor_9:
