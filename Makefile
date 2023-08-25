@@ -11,7 +11,6 @@ airflow_up:
 
 # mlflow
 mlflow_up:
-	export MLFLOW_TRACKING_URI=http://localhost:5040
 	PORT=5040 docker-compose -f platform/mlflow/docker-compose.yml up -d
 
 mlflow_restart:
