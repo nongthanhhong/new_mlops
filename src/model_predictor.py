@@ -263,7 +263,7 @@ if __name__ == "__main__":
     # api = PredictorApi(predictor_1, predictor_2, phase_id = "phase-2")
     
     # app = api.get_app()
-    uvicorn.run("__main__:app", host="0.0.0.0", port=args.port, workers=17)
+    uvicorn.run("__main__:app", host="0.0.0.0", port=args.port, workers=25)
     # uvicorn.run("__main__:app", host="0.0.0.0", port=args.port)
 
     # api.run(port=args.port)
