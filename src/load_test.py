@@ -45,7 +45,6 @@ def send_data_to_server(data, url):
 
     return response
 
-
 def load_test(list_data, url, num_requests):
     with concurrent.futures.ThreadPoolExecutor(max_workers=num_requests) as executor:
         futures = []
@@ -114,7 +113,7 @@ def test_load(url, root_path, num_requests):
   start_time = time.time()
   p95_response_time, drift, total_infe_time, predictions = load_test(list_data, url, num_requests)
 
-  print(list_label.keys(),  f" - {predictions.keys()}")
+  # print(list_label.keys(),  f" - {predictions.keys()}")
   # print(list_label.values(),  f" - {predictions.values()}")
 
   print(f"Request take: {round((time.time() - start_time),2)} seconds")
@@ -126,7 +125,7 @@ def test_load(url, root_path, num_requests):
   print("Average accuracies:")
   avg = []
   for id, accuracy in average_accuracies.items():
-    print(f"  {id}: {accuracy}")
+    # print(f"  {id}: {accuracy}")
     avg.append(accuracy)
   print(f"AVG: {np.mean(avg)}")
 
