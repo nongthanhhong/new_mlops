@@ -132,6 +132,9 @@ def test_load(url, root_path, num_requests):
 
 import argparse
 if __name__ == "__main__":
+  
+  #python src/load_test.py --num-requests 12 --port 8000
+
   parser = argparse.ArgumentParser()
   parser.add_argument("--num-requests", type=int, default=10)
   parser.add_argument("--port", type=int, default="8000")
@@ -151,6 +154,7 @@ if __name__ == "__main__":
   # root_path = "data_warehouse/captured_data/phase-2/prob-2/13/*.parquet"
   
   test_load(url, root_path, num_requests)
+
         
 
 

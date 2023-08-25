@@ -4,11 +4,12 @@
 
     },
     "params": {
-        "n_estimators" : 100,
-        "depth": 7,
-        "loss_function": "Logloss",
+        "n_estimators" : 5000,
+        "depth": 8,
+        "auto_class_weights": "Balanced",
         "learning_rate" : 0.08,
         "eval_metric": "AUC",
+        "use_best_model": true, 
         "verbose": 100, 
         "early_stopping_rounds": 100
     }

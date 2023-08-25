@@ -127,49 +127,59 @@ class ModelTrainer:
 
         logging.info("==============Load data==============")
 
-        # dtrain, dval, dtest, test_x = train_data_loader(prob_config = prob_config, add_captured_data = add_captured_data)
+        train_x, train_y, val_x, val_y, test_x, test_y = train_data_loader(prob_config = prob_config, add_captured_data = add_captured_data)
 
-        # print(f'Loaded {dtrain.shape[0]} Train samples, {dval.shape[0]} val samples , and {dtest.shape[0]} test samples!')
-        # show_proportion("training", dtrain.get_label())
-        # show_proportion("validating", dval.get_label())
-        # show_proportion("testing", dtest.get_label())
+        dtrain = cb.Pool(data=train_x, label=train_y)
+        dval =  cb.Pool(data=val_x, label=val_y)
+        dtest =  cb.Pool(data=test_x, label=test_y)
 
-        data_x, data_y = load_data(prob_config)
-        show_proportion("Training data", data_y)
+        print(f'Loaded {len(train_x)} Train samples, {len(val_x)} val samples , and {len(test_x)} test samples!')
+        show_proportion("training", train_y)
+        show_proportion("validating", val_y)
+        show_proportion("testing", test_y)
+
         
         logging.info("==============Training model==============")
         
         model = class_model.model
-        
 
         # define pipeline
-        over = SMOTE(random_state=0)
-        under = RandomUnderSampler(random_state=0)
+        over = SMOTE(random_state=42)
+        under = RandomUnderSampler(random_state=42)
+
         steps = [('over', over), ('under', under), ('model', model)]
         pipeline = Pipeline(steps=steps)
+        
+        pipeline.fit(train_x, train_y,
+                    **{'model__eval_set': (val_x, val_y)})
+        
+        evaluate_model(model = pipeline, test_data=test_x, test_label=test_y)
 
         # define calibrated classifier
-        clf = CalibratedClassifierCV(pipeline)
+        clf = CalibratedClassifierCV(pipeline, cv='prefit', method='isotonic')
 
-        # define scoring metrics
-        scoring = {'roc_auc': 'roc_auc', 'accuracy': 'accuracy', 'f1': 'f1'}
-
-        # evaluate pipeline
-        cv = RepeatedStratifiedKFold(n_splits=2, n_repeats=2, random_state=0)
-        scores = cross_validate(clf, data_x, data_y, scoring=scoring, cv=cv, n_jobs=-1)
-        best_model = cv.best_estimator_
-
-        # print results
-        for k,v in scores.items():
-            print(f"{k} - {v}")
-            print(f'Mean {k}: {mean(v)}')
-
-
+        clf.fit(test_x, test_y)
 
         logging.info("==============Testing model==============")
 
-        metrics, predictions, probs_prediction = evaluate_model(model = best_model, test_data=data_x, test_label=data_y)
-        return
+        metrics, predictions, probs_prediction = evaluate_model(model = clf, test_data=test_x, test_label=test_y)
+
+        model = clf
+        
+        # # test by cross validation
+        # # define scoring metrics
+        # scoring = {'roc_auc': 'roc_auc', 'accuracy': 'accuracy', 'f1': 'f1'}
+
+        # # evaluate pipeline
+        # cv = RepeatedStratifiedKFold(n_splits=2, n_repeats=2, random_state=0)
+        # scores = cross_validate(clf, data_x, data_y, scoring=scoring, cv=cv, n_jobs=-1)
+        # best_model = cv.best_estimator_
+
+        # # print results
+        # for k,v in scores.items():
+        #     print(f"{k} - {v}")
+        #     print(f'Mean {k}: {mean(v)}')
+
 
         # if add_captured_data:
         #     logging.info("==============Improve use Active learning==============")

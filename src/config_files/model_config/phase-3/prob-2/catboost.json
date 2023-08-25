@@ -1,17 +1,14 @@
 {
     "meta_data": {
         "model_name": "catboost"
-
-    },
-    "train": {
-        "use_best_model": true, 
-        "verbose": 100, 
-        "early_stopping_rounds": 100
     },
     "params": {
         "n_estimators" : 5000,
         "depth": 5,
-        "learning_rate" : 0.0678,
-        "eval_metric":"Accuracy"
+        "auto_class_weights": "Balanced",
+        "learning_rate" : 0.05,
+        "eval_metric":"Accuracy",
+        "verbose": 100, 
+        "early_stopping_rounds": 100
     }
 }

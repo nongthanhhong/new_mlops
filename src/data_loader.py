@@ -179,15 +179,17 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
                                                             random_state=42,
                                                             stratify= data_y)
         train_x, val_x, train_y, val_y = train_test_split(train_x, train_y,
-                                                            test_size=0.2, 
+                                                            test_size=0.1111, 
                                                             random_state=42,
                                                             stratify= train_y)
         
         # test_x, test_y = data_x, data_y
 
-        dtrain = cb.Pool(data=train_x, label=train_y)
-        dval =  cb.Pool(data=val_x, label=val_y)
-        dtest =  cb.Pool(data=test_x, label=test_y)
+        # dtrain = cb.Pool(data=train_x, label=train_y)
+        # dval =  cb.Pool(data=val_x, label=val_y)
+        # dtest =  cb.Pool(data=test_x, label=test_y)
+
+        return  train_x, train_y, val_x, val_y, test_x, test_y
         return dtrain, dval, dtest, test_x
         
 def deploy_data_loader(prob_config: ProblemConfig, raw_df: pd.DataFrame, captured_data_dir = None, id = None, scaler = None, encoder = None):
