@@ -178,10 +178,10 @@ class PredictorApi:
 
             self._log_request(request)
 
-            # with concurrent.futures.ProcessPoolExecutor(max_workers=20) as executor:
-            #     response = executor.submit(self.predictor_1.predict, data).result()
+            with concurrent.futures.ProcessPoolExecutor(max_workers=20) as executor:
+                response = executor.submit(self.predictor_1.predict, data).result()
 
-            response = self.predictor_1.predict(data)
+            # response = self.predictor_1.predict(data)
             # print(f"size of response: {sys.getsizeof(response) / 1e3} KB")
 
             self._log_response(response)
@@ -192,10 +192,10 @@ class PredictorApi:
 
             self._log_request(request)
             
-            # with concurrent.futures.ProcessPoolExecutor(max_workers=20) as executor:
-            #     response = executor.submit(self.predictor_2.predict, data).result()
+            with concurrent.futures.ProcessPoolExecutor(max_workers=20) as executor:
+                response = executor.submit(self.predictor_2.predict, data).result()
 
-            response =  self.predictor_2.predict(data)
+            # response =  self.predictor_2.predict(data)
             # print(f"size of response: {sys.getsizeof(response) / 1e3} KB")
             # try:
             #     start_time = response["time start compress"]
@@ -263,7 +263,7 @@ if __name__ == "__main__":
     # api = PredictorApi(predictor_1, predictor_2, phase_id = "phase-2")
     
     # app = api.get_app()
-    uvicorn.run("__main__:app", host="0.0.0.0", port=args.port, workers=34)
+    uvicorn.run("__main__:app", host="0.0.0.0", port=args.port, workers=17)
     # uvicorn.run("__main__:app", host="0.0.0.0", port=args.port)
 
     # api.run(port=args.port)
