@@ -227,29 +227,34 @@ class PredictorApi:
         uvicorn.run(self.app, host="0.0.0.0", port=port)
 
 
+prob_1_config_path = (
+    AppPath.MODEL_CONFIG_DIR
+    / ProblemConst.PHASE
+    / ProblemConst.PROB1
+    / "model-1.yaml"
+).as_posix()
+
+prob_2_config_path = (
+    AppPath.MODEL_CONFIG_DIR
+    / ProblemConst.PHASE
+    / ProblemConst.PROB2
+    / "model-1.yaml"
+).as_posix()
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--config-path", nargs="+", default=[prob_1_config_path, prob_2_config_path])
+parser.add_argument("--port", type=int, default=PREDICTOR_API_PORT)
+args = parser.parse_args()
+
+predictor_1 = ModelPredictor(config_file_path=args.config_path[0])
+predictor_2 = ModelPredictor(config_file_path=args.config_path[1])
+
+api = PredictorApi(predictor_1, predictor_2, phase_id = ProblemConst.PHASE)
+# api = PredictorApi(predictor_1, predictor_2, phase_id = "phase-2")
+
+app = api.get_app()
 
 if __name__ == "__main__":
-    prob_1_config_path = (
-        AppPath.MODEL_CONFIG_DIR
-        / ProblemConst.PHASE
-        / ProblemConst.PROB1
-        / "model-1.yaml"
-    ).as_posix()
-
-    prob_2_config_path = (
-        AppPath.MODEL_CONFIG_DIR
-        / ProblemConst.PHASE
-        / ProblemConst.PROB2
-        / "model-1.yaml"
-    ).as_posix()
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--config-path", nargs="+", default=[prob_1_config_path, prob_2_config_path])
-    parser.add_argument("--port", type=int, default=PREDICTOR_API_PORT)
-    args = parser.parse_args()
-
-    predictor_1 = ModelPredictor(config_file_path=args.config_path[0])
-    predictor_2 = ModelPredictor(config_file_path=args.config_path[1])
 
     # predictor_1 = ModelPredictor(config_file_path=prob_1_config_path)
     # predictor_2 = ModelPredictor(config_file_path=prob_2_config_path)
@@ -258,8 +263,8 @@ if __name__ == "__main__":
     # api = PredictorApi(predictor_1, predictor_2, phase_id = "phase-2")
     
     # app = api.get_app()
-    # uvicorn.run("__main__:app", host="0.0.0.0", port=args.port, workers=2)
+    uvicorn.run("__main__:app", host="0.0.0.0", port=args.port, workers=17)
     # uvicorn.run("__main__:app", host="0.0.0.0", port=args.port)
 
-    api.run(port=args.port)
+    # api.run(port=args.port)
 
