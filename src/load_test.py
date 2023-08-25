@@ -69,7 +69,8 @@ def load_test(list_data, url, num_requests):
             
             predictions[json_res["id"]] = json_res["predictions"]
             # total_infe_time += json_res["inference time"]
-        p95_response_time = sorted(response_times)[int(0.95 * num_requests)]
+    
+    p95_response_time = sorted(response_times)[int(0.95 * num_requests)]
 
     return p95_response_time, drift, total_infe_time, predictions
 
