@@ -51,7 +51,7 @@ def load_test(list_data, url, num_requests):
         futures = []
         for data in tqdm(list_data, ncols=100, desc ="Requesting...", unit ="file"):
             future = executor.submit(send_data_to_server, data, url)
-            print(f"size of predict list type: {sys.getsizeof(future) / 1e3} KB")
+            # print(f"size of predict list type: {sys.getsizeof(future) / 1e3} KB")
 
             futures.append(future)
 
