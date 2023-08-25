@@ -46,7 +46,7 @@
 
     ```bash
     make mlflow_up
-    export MLFLOW_TRACKING_URI=http://localhost:5040
+    
     python src/model_trainer.py --phase-id phase-1 --prob-id prob-1 --name-run duplicated_drop_1
     python src/model_trainer.py --phase-id phase-2 --prob-id prob-1 --name-run duplicated_drop_1
     python src/model_trainer.py --phase-id phase-3 --prob-id prob-1 --name-run duplicated_drop_1
