@@ -3,6 +3,7 @@
         "model_name": "catboost"
     },
     "params": {
+        "thread_count": -1,
         "n_estimators" : 5000,
         "depth": 5,
         "auto_class_weights": "Balanced",
