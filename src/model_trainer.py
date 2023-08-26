@@ -13,7 +13,7 @@ from scipy.stats import entropy
 from collections import Counter
 from mlflow.models.signature import infer_signature
 from sklearn.utils.class_weight import compute_class_weight
-from sklearn.metrics import roc_auc_score, classification_report, confusion_matrix, roc_curve, log_loss, accuracy_score
+from sklearn.metrics import roc_auc_score, classification_report, confusion_matrix, roc_curve, log_loss, accuracy_score, f1_score
 from sklearn.calibration import CalibratedClassifierCV
 import matplotlib.pyplot as plt
 from data_loader import train_data_loader
@@ -100,7 +100,12 @@ def evaluate_model(model = None, test_data = None, test_label = None):
 
     acc_score = accuracy_score(test_label, predictions)
 
-    metrics = {"test_auc": roc_auc, "log_loss": log_loss_score, "test_acc": acc_score, "percent_prob": percentage, "predict_time_ms": predict_time/len(test_data)}
+    try:
+        f1 = f1_score(test_label, predictions)
+    except:
+        f1 = f1_score(test_label, predictions, average='weighted')
+
+    metrics = {"test_auc": roc_auc, "test_f1": f1, "log_loss": log_loss_score, "test_acc": acc_score, "percent_prob": percentage, "predict_time_ms": predict_time/len(test_data)}
     
     logging.info(f"metrics: {metrics}")
     logging.info("\n" + classification_report(test_label, predictions))
@@ -142,21 +147,14 @@ class ModelTrainer:
         logging.info("==============Training model==============")
         
         model = class_model.model
-
-        # define pipeline
-        over = SMOTE(random_state=42)
-        under = RandomUnderSampler(random_state=42)
-
-        steps = [('over', over), ('under', under), ('model', model)]
-        pipeline = Pipeline(steps=steps)
         
-        pipeline.fit(train_x, train_y,
-                    **{'model__eval_set': (val_x, val_y)})
         
-        evaluate_model(model = pipeline, test_data=test_x, test_label=test_y)
+        model.fit(dtrain, eval_set=dval)
+        
+        evaluate_model(model = model, test_data=test_x, test_label=test_y)
 
         # define calibrated classifier
-        clf = CalibratedClassifierCV(pipeline, cv='prefit', method='isotonic')
+        clf = CalibratedClassifierCV(model, cv='prefit', method='isotonic')
 
         clf.fit(test_x, test_y)
 

@@ -5,10 +5,13 @@
     "params": {
         "thread_count": -1,
         "n_estimators" : 5000,
-        "depth": 5,
-        "auto_class_weights": "Balanced",
-        "learning_rate" : 0.05,
+        "depth": 10,
+        "learning_rate" : 0.02,
+        "subsample" : 0.4,
+        "l2_leaf_reg": 1,
         "eval_metric":"Accuracy",
+        "bootstrap_type":"Bernoulli",
+        "use_best_model": true,
         "verbose": 100, 
         "early_stopping_rounds": 100
     }

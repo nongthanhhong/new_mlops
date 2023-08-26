@@ -6,11 +6,13 @@
     "params": {
         "thread_count": -1,
         "n_estimators" : 5000,
-        "depth": 8,
+        "depth": 6,
         "auto_class_weights": "Balanced",
         "learning_rate" : 0.08,
-        "eval_metric": "AUC",
-        "use_best_model": true, 
+        "subsample" : 0.4,
+        "l2_leaf_reg": 1,
+        "eval_metric":"AUC",
+        "use_best_model": true,
         "verbose": 100, 
         "early_stopping_rounds": 100
     }

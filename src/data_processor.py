@@ -101,7 +101,6 @@ def transform_new_data(prob_config: ProblemConfig, new_df: pd.DataFrame, encoder
 
     # return new_df
     
-
 def handle_missing_values_np(data, config):
     data_np = data.to_numpy()
     if config['missing_values']['method'] == 'drop':
