@@ -98,6 +98,8 @@ class ModelPredictor:
         if len(cat_columns) != 0:
             with open(self.prob_config.prob_resource_path + "encoder.pkl", 'rb') as f:
                 self.encoder = pickle.load(f)
+        else:
+            self.encoder = None
         
         with open("./src/config_files/data_config.json", 'r') as f:
             self.config = json.load(f)
