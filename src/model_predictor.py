@@ -98,6 +98,9 @@ class ModelPredictor:
         if len(cat_columns) != 0:
             with open(self.prob_config.prob_resource_path + "encoder.pkl", 'rb') as f:
                 self.encoder = pickle.load(f)
+        
+        with open("./src/config_files/data_config.json", 'r') as f:
+            self.config = json.load(f)
     
     def detect_drift(self, drift_feature) -> int:
         # watch drift between coming requests and training data
@@ -126,7 +129,7 @@ class ModelPredictor:
         logging.info(f"Load data take {round((time.time() - data_time) * 1000, 0)} ms, for {len(data.rows)} instances!")
 
         process_data_time = time.time()
-        feature_df = deploy_data_loader(prob_config=self.prob_config, raw_df=raw_data, captured_data_dir=self.path_save_captured, id=data.id, scaler=self.scaler, encoder=self.encoder)
+        feature_df = deploy_data_loader(prob_config=self.prob_config, raw_df=raw_data, captured_data_dir=self.path_save_captured, id=data.id, config = self.config, scaler=self.scaler, encoder=self.encoder)
         logging.info(f"Process data take {round((time.time() - process_data_time) * 1000, 0)} ms")
 
         predict_time = time.time()

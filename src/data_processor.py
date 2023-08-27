@@ -14,7 +14,7 @@ from scipy import stats
 from problem_config import ProblemConfig
 from category_encoders import TargetEncoder, BinaryEncoder
 from scipy.stats import wasserstein_distance
-from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler, LabelEncoder
 
 def train_encoder(prob_config: ProblemConfig, train_x: pd.DataFrame, train_y: pd.DataFrame or pd.Series, val_x: pd.DataFrame, val_y: pd.DataFrame or pd.Series, test_x: pd.DataFrame, test_y: pd.DataFrame or pd.Series):
 
@@ -36,7 +36,7 @@ def train_encoder(prob_config: ProblemConfig, train_x: pd.DataFrame, train_y: pd
     # define encoder
     logging.info(f"Encode : {categorical_cols}")
     # encoder = BinaryEncoder(return_df=False)
-    encoder = TargetEncoder(return_df=False)
+    encoder = LabelEncoder()
     
     # Fit the encoder on the training data
     cat_columns = train_x[categorical_cols].to_numpy()
@@ -66,7 +66,7 @@ def train_encoder(prob_config: ProblemConfig, train_x: pd.DataFrame, train_y: pd
         target_columns = train_y.to_numpy()
 
     encode_time = time.time()
-    encoded_cols = encoder.fit_transform(cat_columns, target_columns)
+    encoded_cols = encoder.fit_transform(cat_columns) #, target_columns)
     
     # Transform the training data
     encoded_categorical_cols = pd.DataFrame(encoded_cols, columns=categorical_cols)
@@ -138,7 +138,7 @@ def wrong_data_type(data):
     data_np[np.isnan(data_np)] = 0
     return pd.DataFrame(data_np, columns=data.columns)
 
-def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, label: pd.Series = None, mode='train', flag = "new", deploy_scaler = None):
+def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, label: pd.Series = None, mode='train', flag = "new", config = None, deploy_scaler = None):
         
         """
         Performing preprocessing data:
@@ -157,11 +157,6 @@ def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, label: pd.Se
         Returns:
         pandas.DataFrame: Data that had been preprocessed
         """
-
-        # Load the config file
-        with open("./src/config_files/data_config.json", 'r') as f:
-            config = json.load(f)
-        
 
         preprocess_missing_data_time = time.time()
         data = handle_missing_values_np(data, config)
@@ -184,7 +179,7 @@ def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, label: pd.Se
             old_label = label
             old_features = data
             data = pd.DataFrame(scaler.fit_transform(old_features), columns=old_features.columns)
-            
+
             # Save the scaler to a file for later use in deployment
             with open(prob_config.prob_resource_path + f"{scaler_name}_scaler.pkl", 'wb') as f:
                 pickle.dump(scaler, f)
@@ -202,9 +197,7 @@ def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, label: pd.Se
 
         elif mode == 'deploy':
             data = pd.DataFrame(deploy_scaler.transform(data), columns=data.columns)
-            
         logging.info(f"Scale_data data take {round((time.time() - Scale_data_time) * 1000, 0)} ms")
-
 
         convert_type = time.time()
         # Convert the dtype of the `data` DataFrame to `float32`.

@@ -71,19 +71,22 @@ def raw_data_process(prob_config: ProblemConfig, flag = "new"):
     logging.info("Encoding categorical columns...")
     train_x, train_y, val_x, val_y, test_x, test_y= train_encoder(prob_config = prob_config, train_x=train_x, train_y=train_y, val_x=val_x, val_y=val_y, test_x=test_x, test_y=test_y)
     
-    logging.info("Preprocessing data...")
-    train_x, train_y = preprocess_data(prob_config = prob_config, data = train_x, label = train_y, mode = 'train', flag = flag)
     
     with open("./src/config_files/data_config.json", 'r') as f:
             config = json.load(f)
+
+
+    logging.info("Preprocessing data...")
+    train_x, train_y = preprocess_data(prob_config = prob_config, data = train_x, label = train_y, mode = 'train', flag = flag, config = config)
+            
     scaler_name = config['scale_data']['method']
     if not os.path.isfile(prob_config.prob_resource_path + f"{scaler_name}_scaler.pkl"):
         raise ValueError(f"Not exist prefitted '{scaler_name}' scaler")
     with open(prob_config.prob_resource_path + f"{scaler_name}_scaler.pkl", 'rb') as f:
         scaler = pickle.load(f)
 
-    val_x, val_y = preprocess_data(prob_config = prob_config, data = val_x, label = val_y, mode = 'deploy', deploy_scaler = scaler)
-    test_x, test_y = preprocess_data(prob_config = prob_config, data = test_x, label = test_y, mode = 'deploy', deploy_scaler = scaler)
+    val_x, val_y = preprocess_data(prob_config = prob_config, data = val_x, label = val_y, mode = 'deploy', config = config, deploy_scaler = scaler)
+    test_x, test_y = preprocess_data(prob_config = prob_config, data = test_x, label = test_y, mode = 'deploy', config = config, deploy_scaler = scaler)
     
     # Export preprocessed data
     logging.info("Save data...")
@@ -212,7 +215,7 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
 
         return  train_x, train_y, val_x, val_y, test_x, test_y
         
-def deploy_data_loader(prob_config: ProblemConfig, raw_df: pd.DataFrame, captured_data_dir = None, id = None, scaler = None, encoder = None):
+def deploy_data_loader(prob_config: ProblemConfig, raw_df: pd.DataFrame, captured_data_dir = None, id = None, config=None, scaler = None, encoder = None):
 
     """
     Process data for deploy phase
@@ -233,7 +236,7 @@ def deploy_data_loader(prob_config: ProblemConfig, raw_df: pd.DataFrame, capture
     logging.info(f"transform_new_data_time take {round((time.time() - transform_new_data_time) * 1000, 0)} ms")
 
     preprocess_data_time = time.time()
-    new_data = preprocess_data(prob_config = prob_config, data = encoded_data, mode = 'deploy', deploy_scaler = scaler)
+    new_data = preprocess_data(prob_config = prob_config, data = encoded_data, mode = 'deploy', config=config, deploy_scaler = scaler)
     logging.info(f"total preprocess_data take {round((time.time() - preprocess_data_time) * 1000, 0)} ms")
 
     # #generate name for save file
