@@ -67,10 +67,10 @@ class ModelPredictor:
         # set drifted column
         train_data, train_label = load_data(self.prob_config.processed_x_path, self.prob_config.processed_y_path)
         _, test_x, _, _ = train_test_split(train_data, train_label,
-                                                            test_size=2000, 
+                                                            test_size=1000, 
                                                             random_state=42,
                                                             stratify= train_label)
-        self.drift_feature = "feature2"
+        self.drift_feature = "feature9"
         self.ref_column = test_x[self.drift_feature]
         logging.info(self.prob_config.prob_resource_path)
 
@@ -114,7 +114,8 @@ class ModelPredictor:
 
         data_time = time.time()
         # List of columns you are interested in
-        selected_columns = self.columns_to_keep
+        selected_columns = self.columns_to_keep + [self.drift_feature]
+        
         # Get the indices of the selected columns
         selected_indices = [data.columns.index(col) for col in selected_columns]
         # Select only the data for the selected columns
@@ -144,8 +145,8 @@ class ModelPredictor:
         logging.info(f"Transform predict take {round((time.time() - transform_predict_time) * 1000, 0)} ms")
         
         drift_detect_time = time.time()
-        # is_drifted = self.detect_drift(feature_df[self.drift_feature])
-        is_drifted = 1
+        is_drifted = self.detect_drift(feature_df[self.drift_feature])
+        # is_drifted = 1
         logging.info(f"drift detect take {round((time.time() - drift_detect_time) * 1000, 0)} ms")
 
         run_time = round((time.time() - start_time) * 1000, 0)

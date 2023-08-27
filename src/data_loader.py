@@ -37,9 +37,9 @@ def raw_data_process(prob_config: ProblemConfig, flag = "new"):
     training_data = pd.read_parquet(prob_config.raw_data_path)
 
     list_drop_1_prob_1 = ['feature3', 'feature4', 'feature5', 'feature6', 'feature13', 'feature14', 'feature19', 'feature20', 'feature21', 'feature22', 'feature23', 'feature24', \
-                                    'feature28', 'feature29', 'feature30', 'feature32', 'feature33', 'feature36', 'feature37', 'feature38', 'feature39', 'feature40', 'feature41']
+                                    'feature28', 'feature29', 'feature30', 'feature32', 'feature33', 'feature36', 'feature37', 'feature38', 'feature39', 'feature40', 'feature41', 'feature35', 'feature10', 'feature34' ]
     list_drop_1_prob_2 = ['feature3', 'feature4', 'feature5', 'feature6', 'feature13', 'feature14', 'feature19', 'feature20', 'feature21', 'feature22', 'feature23', 'feature24', \
-                                    'feature28', 'feature29', 'feature30', 'feature32', 'feature33', 'feature36', 'feature37', 'feature38', 'feature39', 'feature40', 'feature41']
+                                    'feature28', 'feature29', 'feature30', 'feature32', 'feature33', 'feature36', 'feature37', 'feature38', 'feature39', 'feature40', 'feature41', 'feature35', 'feature10', 'feature34' ]
 
     # list_drop_2 = ['feature3', 'feature20', 'feature10', 'feature22', 'feature29', 'feature13', 'feature25', 'feature36', 'feature4', 'feature21', 'feature7', 'feature28', 'feature37', 'feature41', 'feature19', 'feature17', 'feature38']
     if prob_config.prob_id == "prob-1":
@@ -180,6 +180,10 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
     val_x, val_y = load_data(prob_config.processed_data_path / "val_x.parquet", prob_config.processed_data_path / "val_y.parquet")
     test_x, test_y = load_data(prob_config.processed_data_path / "test_x.parquet", prob_config.processed_data_path / "test_y.parquet")
 
+    train_x.drop(["feature9"], axis=1, inplace=True)
+    val_x.drop(["feature9"], axis=1, inplace=True)
+    test_x.drop(["feature9"], axis=1, inplace=True)
+
     
 
     if add_captured_data:
@@ -232,16 +236,16 @@ def deploy_data_loader(prob_config: ProblemConfig, raw_df: pd.DataFrame, capture
     new_data = preprocess_data(prob_config = prob_config, data = encoded_data, mode = 'deploy', deploy_scaler = scaler)
     logging.info(f"total preprocess_data take {round((time.time() - preprocess_data_time) * 1000, 0)} ms")
 
-    #generate name for save file
-    generate_id_time = time.time()
-    filename = generate_id(id)
-    logging.info(f"generate_name take {round((time.time() - generate_id_time) * 1000, 0)} ms")
+    # #generate name for save file
+    # generate_id_time = time.time()
+    # filename = generate_id(id)
+    # logging.info(f"generate_name take {round((time.time() - generate_id_time) * 1000, 0)} ms")
 
-    # save request data for improving models
-    save_data_time = time.time()
-    output_file_path = os.path.join(captured_data_dir, f"{filename}.parquet")
-    raw_df.to_parquet(output_file_path, index=False, engine='pyarrow', compression='snappy')
-    logging.info(f"save_data take {round((time.time() - save_data_time) * 1000, 0)} ms")
+    # # save request data for improving models
+    # save_data_time = time.time()
+    # output_file_path = os.path.join(captured_data_dir, f"{filename}.parquet")
+    # raw_df.to_parquet(output_file_path, index=False, engine='pyarrow', compression='snappy')
+    # logging.info(f"save_data take {round((time.time() - save_data_time) * 1000, 0)} ms")
 
     return new_data
 
@@ -342,7 +346,7 @@ def captured_data_loader(prob_config: ProblemConfig):
     logging.disable(logging.CRITICAL)
     #save batches
     for batch, file_name in tqdm(batchs, ncols=100, desc ="Saving batches...", unit ="file"):
-        new_data = batch[columns_to_keep]
+        new_data = batch #[columns_to_keep]
         encoded_data = transform_new_data(prob_config, new_data, encoder=encoder)
         new_data = preprocess_data(prob_config = prob_config, data = encoded_data, mode = 'deploy', deploy_scaler=scaler)
         new_data.to_parquet(prob_config.processed_captured_data_dir / file_name)
