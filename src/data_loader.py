@@ -37,9 +37,9 @@ def raw_data_process(prob_config: ProblemConfig, flag = "new"):
     training_data = pd.read_parquet(prob_config.raw_data_path)
 
     list_drop_1_prob_1 = ['feature3', 'feature4', 'feature5', 'feature6', 'feature13', 'feature14', 'feature19', 'feature20', 'feature21', 'feature22', 'feature23', 'feature24', \
-                                    'feature28', 'feature29', 'feature30', 'feature32', 'feature33', 'feature36', 'feature37', 'feature38', 'feature39', 'feature40', 'feature41', 'feature35', 'feature10', 'feature34', 'feature2']
+                                    'feature28', 'feature29', 'feature30', 'feature32', 'feature33', 'feature36', 'feature37', 'feature38', 'feature39', 'feature40', 'feature41', 'feature35', 'feature10', 'feature34', 'feature2' ]
     list_drop_1_prob_2 = ['feature3', 'feature4', 'feature5', 'feature6', 'feature13', 'feature14', 'feature19', 'feature20', 'feature21', 'feature22', 'feature23', 'feature24', \
-                                    'feature28', 'feature29', 'feature30', 'feature32', 'feature33', 'feature36', 'feature37', 'feature38', 'feature39', 'feature40', 'feature41', 'feature35', 'feature10', 'feature34', 'feature2']
+                                    'feature28', 'feature29', 'feature30', 'feature32', 'feature33', 'feature36', 'feature37', 'feature38', 'feature39', 'feature40', 'feature41', 'feature35', 'feature10', 'feature34', 'feature2' ]
 
     # list_drop_2 = ['feature3', 'feature20', 'feature10', 'feature22', 'feature29', 'feature13', 'feature25', 'feature36', 'feature4', 'feature21', 'feature7', 'feature28', 'feature37', 'feature41', 'feature19', 'feature17', 'feature38']
     if prob_config.prob_id == "prob-1":
@@ -69,7 +69,8 @@ def raw_data_process(prob_config: ProblemConfig, flag = "new"):
     test_y.reset_index(drop=True, inplace=True)
 
     logging.info("Encoding categorical columns...")
-    train_x, train_y, val_x, val_y, test_x, test_y = train_encoder(prob_config = prob_config, train_x=train_x, train_y=train_y, val_x=val_x, val_y=val_y, test_x=test_x, test_y=test_y)
+    train_x, train_y, val_x, val_y, test_x, test_y= train_encoder(prob_config = prob_config, train_x=train_x, train_y=train_y, val_x=val_x, val_y=val_y, test_x=test_x, test_y=test_y)
+    
     
     with open("./src/config_files/data_config.json", 'r') as f:
             config = json.load(f)

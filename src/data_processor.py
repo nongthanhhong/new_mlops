@@ -30,16 +30,6 @@ def train_encoder(prob_config: ProblemConfig, train_x: pd.DataFrame, train_y: pd
     """
     
     categorical_cols =  list(set(prob_config.raw_categorical_cols) & set(train_x.columns))
-    if len(categorical_cols) == 0:
-        return train_x, train_y, val_x, test_x
-    
-    # define encoder
-    logging.info(f"Encode : {categorical_cols}")
-    # encoder = BinaryEncoder(return_df=False)
-    encoder = LabelEncoder()
-    
-    # Fit the encoder on the training data
-    cat_columns = train_x[categorical_cols].to_numpy()
 
     if train_y.dtypes == 'object':
         # Encode the fruit column using the factorize method
@@ -65,24 +55,36 @@ def train_encoder(prob_config: ProblemConfig, train_x: pd.DataFrame, train_y: pd
     else:
         target_columns = train_y.to_numpy()
 
-    encode_time = time.time()
-    encoded_cols = encoder.fit_transform(cat_columns) #, target_columns)
+    if len(categorical_cols) != 0:
     
-    # Transform the training data
-    encoded_categorical_cols = pd.DataFrame(encoded_cols, columns=categorical_cols)
-    # Drop the original categorical column
-    train_x = train_x.drop(categorical_cols, axis=1)
-    # # Concatenate the original DataFrame with the one-hot encoded DataFrame
-    train_x = pd.concat([train_x, encoded_categorical_cols], axis=1)
-    
-    # Save the fitted encoder to disk
-    with open(prob_config.prob_resource_path + "encoder.pkl", 'wb') as f:
-        pickle.dump(encoder, f)
+        # define encoder
+        logging.info(f"Encode : {categorical_cols}")
+        # encoder = BinaryEncoder(return_df=False)
+        encoder = LabelEncoder()
+        
+        # Fit the encoder on the training data
+        cat_columns = train_x[categorical_cols].to_numpy()
 
-    val_x = pd.concat([val_x.drop(categorical_cols, axis=1), pd.DataFrame(encoder.transform(val_x[categorical_cols].to_numpy()), columns=categorical_cols)], axis=1)
-    test_x = pd.concat([test_x.drop(categorical_cols, axis=1), pd.DataFrame(encoder.transform(test_x[categorical_cols].to_numpy()), columns=categorical_cols)], axis=1)
-    
-    logging.info(f"Encode time take {round((time.time() - encode_time) * 1000, 0)} ms")    
+        
+
+        encode_time = time.time()
+        encoded_cols = encoder.fit_transform(cat_columns) #, target_columns)
+        
+        # Transform the training data
+        encoded_categorical_cols = pd.DataFrame(encoded_cols, columns=categorical_cols)
+        # Drop the original categorical column
+        train_x = train_x.drop(categorical_cols, axis=1)
+        # # Concatenate the original DataFrame with the one-hot encoded DataFrame
+        train_x = pd.concat([train_x, encoded_categorical_cols], axis=1)
+        
+        # Save the fitted encoder to disk
+        with open(prob_config.prob_resource_path + "encoder.pkl", 'wb') as f:
+            pickle.dump(encoder, f)
+
+        val_x = pd.concat([val_x.drop(categorical_cols, axis=1), pd.DataFrame(encoder.transform(val_x[categorical_cols].to_numpy()), columns=categorical_cols)], axis=1)
+        test_x = pd.concat([test_x.drop(categorical_cols, axis=1), pd.DataFrame(encoder.transform(test_x[categorical_cols].to_numpy()), columns=categorical_cols)], axis=1)
+        
+        logging.info(f"Encode time take {round((time.time() - encode_time) * 1000, 0)} ms")    
 
     return train_x, train_y, val_x, val_y, test_x, test_y
 
@@ -157,6 +159,9 @@ def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, label: pd.Se
         Returns:
         pandas.DataFrame: Data that had been preprocessed
         """
+
+        
+        
 
         preprocess_missing_data_time = time.time()
         data = handle_missing_values_np(data, config)
