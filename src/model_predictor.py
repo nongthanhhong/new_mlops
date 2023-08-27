@@ -144,8 +144,8 @@ class ModelPredictor:
         logging.info(f"Transform predict take {round((time.time() - transform_predict_time) * 1000, 0)} ms")
         
         drift_detect_time = time.time()
-        is_drifted = self.detect_drift(feature_df[self.drift_feature])
-        # is_drifted = 0
+        # is_drifted = self.detect_drift(feature_df[self.drift_feature])
+        is_drifted = 1
         logging.info(f"drift detect take {round((time.time() - drift_detect_time) * 1000, 0)} ms")
 
         run_time = round((time.time() - start_time) * 1000, 0)
