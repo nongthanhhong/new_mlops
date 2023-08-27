@@ -69,8 +69,7 @@ def raw_data_process(prob_config: ProblemConfig, flag = "new"):
     test_y.reset_index(drop=True, inplace=True)
 
     logging.info("Encoding categorical columns...")
-    train_x, train_y, val_x, val_y, test_x, test_y= train_encoder(prob_config = prob_config, train_x=train_x, train_y=train_y, val_x=val_x, val_y=val_y, test_x=test_x, test_y=test_y)
-    
+    train_x, train_y, val_x, val_y, test_x, test_y = train_encoder(prob_config = prob_config, train_x=train_x, train_y=train_y, val_x=val_x, val_y=val_y, test_x=test_x, test_y=test_y)
     
     with open("./src/config_files/data_config.json", 'r') as f:
             config = json.load(f)
