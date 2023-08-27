@@ -46,29 +46,58 @@ def raw_data_process(prob_config: ProblemConfig, flag = "new"):
 
     # training_data = training_data.drop_duplicates().reset_index(drop=True)
 
+    data_x, data_y = training_data.drop([prob_config.target_col], axis=1), training_data[prob_config.target_col]
+
+    train_x, test_x, train_y, test_y = train_test_split(data_x, data_y,
+                                                            test_size=0.1, 
+                                                            random_state=42,
+                                                            stratify= data_y)
+    train_x, val_x, train_y, val_y = train_test_split(train_x, train_y,
+                                                        test_size=0.1111, 
+                                                        random_state=42,
+                                                        stratify= train_y)
+    train_x.reset_index(drop=True, inplace=True)
+    train_y.reset_index(drop=True, inplace=True)
+
+    val_x.reset_index(drop=True, inplace=True)
+    val_y.reset_index(drop=True, inplace=True)
+
+    test_x.reset_index(drop=True, inplace=True)
+    test_y.reset_index(drop=True, inplace=True)
+
     logging.info("Encoding categorical columns...")
-    encoded_data = train_encoder(prob_config = prob_config, df = training_data)
-
-    dtype = encoded_data.dtypes.to_frame('dtypes').reset_index().set_index('index')['dtypes'].astype(str).to_dict()
-    with open(prob_config.prob_resource_path + "types.json", 'w+') as f:
-        json.dump(dtype, f)
-
+    train_x, train_y, val_x, val_y, test_x, test_y= train_encoder(prob_config = prob_config, train_x=train_x, train_y=train_y, val_x=val_x, val_y=val_y, test_x=test_x, test_y=test_y)
+    
     logging.info("Preprocessing data...")
-    data = preprocess_data(prob_config = prob_config, data = encoded_data, mode = 'train', flag = flag)
+    train_x, train_y = preprocess_data(prob_config = prob_config, data = train_x, label = train_y, mode = 'train', flag = flag)
+    
+    with open("./src/config_files/data_config.json", 'r') as f:
+            config = json.load(f)
+    scaler_name = config['scale_data']['method']
+    if not os.path.isfile(prob_config.prob_resource_path + f"{scaler_name}_scaler.pkl"):
+        raise ValueError(f"Not exist prefitted '{scaler_name}' scaler")
+    with open(prob_config.prob_resource_path + f"{scaler_name}_scaler.pkl", 'rb') as f:
+        scaler = pickle.load(f)
+
+    val_x, val_y = preprocess_data(prob_config = prob_config, data = val_x, label = val_y, mode = 'deploy', deploy_scaler = scaler)
+    test_x, test_y = preprocess_data(prob_config = prob_config, data = test_x, label = test_y, mode = 'deploy', deploy_scaler = scaler)
     
     # Export preprocessed data
     logging.info("Save data...")
-    data_x = data.drop([prob_config.target_col], axis=1)
-    data_y = data[[prob_config.target_col]]
-    data_x.to_parquet(prob_config.processed_x_path, index=False)
-    data_y.to_parquet(prob_config.processed_y_path, index=False)
+    train_x.to_parquet(prob_config.processed_x_path, index=False)
+    pd.DataFrame(train_y).to_parquet(prob_config.processed_y_path, index=False)
+    
+    val_x.to_parquet(prob_config.processed_data_path / "val_x.parquet", index=False)
+    pd.DataFrame(val_y).to_parquet(prob_config.processed_data_path / "val_y.parquet", index=False)
 
+    test_x.to_parquet(prob_config.processed_data_path / "test_x.parquet", index=False)
+    pd.DataFrame(test_y).to_parquet(prob_config.processed_data_path / "test_y.parquet", index=False)
 
     raw_config = json.load(open(prob_config.raw_feature_config_path))
     config ={}
     config['numeric_columns'] = []
     config['category_columns']= []
-    for column in data.columns.drop(prob_config.target_col):
+    for column in train_x.columns:
         if column in raw_config['category_columns']:
             config['category_columns'].append(column)
         else:
@@ -76,12 +105,18 @@ def raw_data_process(prob_config: ProblemConfig, flag = "new"):
 
     config['target_column'] = raw_config['target_column'] 
     config['ml_type'] = raw_config['ml_type']
-
-
     with open(prob_config.processed_feature_config_path, 'w+') as f:
         json.dump(config, f, indent=4)
+    dtype = train_x.dtypes.to_frame('dtypes').reset_index().set_index('index')['dtypes'].astype(str).to_dict()
+    with open(prob_config.prob_resource_path + "types.json", 'w+') as f:
+        json.dump(dtype, f)
     
-    logging.info(data.info())
+    train_x.info()
+    pd.DataFrame(train_y).info()
+    val_x.info()
+    pd.DataFrame(val_y).info()
+    test_x.info()
+    pd.DataFrame(test_y).info()
 
     logging.info("Done!")
         
@@ -92,12 +127,10 @@ def load_capture_data(prob_config: ProblemConfig):
     # captured_y = pd.read_parquet(captured_y_path)
     return captured_x
 
-def load_data(prob_config: ProblemConfig):
-    processed_x_path = prob_config.processed_x_path
-    processed_y_path = prob_config.processed_y_path
+def load_data(processed_x_path, processed_y_path):
     data_x = pd.read_parquet(processed_x_path)
     data_y = pd.read_parquet(processed_y_path)
-    return data_x, data_y[prob_config.target_col]
+    return data_x, data_y["label"]
     
 def OverSampling_SMOTE(train_x, train_y):
      # smote = SMOTE(sampling_strategy={2: desired_count}, random_state=0)
@@ -140,68 +173,37 @@ def train_data_loader(prob_config: ProblemConfig, add_captured_data = False):
     """
      # load train data
 
-    data_x, data_y = load_data(prob_config)
+    train_x, train_y = load_data(prob_config.processed_data_path / "train_x.parquet", prob_config.processed_data_path / "train_y.parquet")
+    val_x, val_y = load_data(prob_config.processed_data_path / "val_x.parquet", prob_config.processed_data_path / "val_y.parquet")
+    test_x, test_y = load_data(prob_config.processed_data_path / "test_x.parquet", prob_config.processed_data_path / "test_y.parquet")
+
     
 
     if add_captured_data:
         
         logging.info("Use captured data and feature selection")
         # captured_x = load_capture_data(prob_config)
-        columns = data_x.columns
-
-
-
-        # split data into training, validation, and test sets
-        train_x, test_x, train_y, test_y = train_test_split(data_x, data_y,
-                                                            test_size=0.1, 
-                                                            random_state=42,
-                                                            stratify= data_y)
         
         # define pipeline
-        over = SMOTE(random_state=42)
-        under = RandomUnderSampler(random_state=42)
+        over = SMOTE(random_state=0)
+        under = RandomUnderSampler(random_state=0)
 
         steps = [('over', over), ('under', under)]
         pipeline = Pipeline(steps=steps)
-        sampling_data_x, sampling_data_y = pipeline.fit_resample(train_x, train_y)
+        # sampling_data_x, sampling_data_y = pipeline.fit_resample(train_x, train_y)
+        train_x, train_y = pipeline.fit_resample(train_x, train_y)
 
-        train_x, val_x, train_y, val_y = train_test_split(sampling_data_x, sampling_data_y,
-                                                            test_size=0.2, 
-                                                            random_state=42,
-                                                            stratify= sampling_data_y)
+        # train_x, val_x, train_y, val_y = train_test_split(sampling_data_x, sampling_data_y,
+        #                                                     test_size=0.2, 
+        #                                                     random_state=42,
+        #                                                     stratify= sampling_data_y)
         
-        
-        # test_x, test_y = data_x, data_y
-
-        dtrain = cb.Pool(data=train_x, label=train_y)
-        dval =  cb.Pool(data=val_x, label=val_y)
-        dtest =  cb.Pool(data=test_x, label=test_y)
-        
-
         return  train_x, train_y, val_x, val_y, test_x, test_y
-        return dtrain, dval, dtest, test_x
-        
 
     else:
         logging.info("Use original data")
-        # split data into training, validation, and test sets
-        train_x, test_x, train_y, test_y = train_test_split(data_x, data_y,
-                                                            test_size=0.1, 
-                                                            random_state=42,
-                                                            stratify= data_y)
-        train_x, val_x, train_y, val_y = train_test_split(train_x, train_y,
-                                                            test_size=0.1111, 
-                                                            random_state=42,
-                                                            stratify= train_y)
-        
-        # test_x, test_y = data_x, data_y
-
-        # dtrain = cb.Pool(data=train_x, label=train_y)
-        # dval =  cb.Pool(data=val_x, label=val_y)
-        # dtest =  cb.Pool(data=test_x, label=test_y)
 
         return  train_x, train_y, val_x, val_y, test_x, test_y
-        return dtrain, dval, dtest, test_x
         
 def deploy_data_loader(prob_config: ProblemConfig, raw_df: pd.DataFrame, captured_data_dir = None, id = None, scaler = None, encoder = None):
 

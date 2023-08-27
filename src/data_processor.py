@@ -12,11 +12,11 @@ import pandas as pd
 import catboost as cb
 from scipy import stats
 from problem_config import ProblemConfig
-from category_encoders import TargetEncoder
+from category_encoders import TargetEncoder, BinaryEncoder
 from scipy.stats import wasserstein_distance
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 
-def train_encoder(prob_config: ProblemConfig, df: pd.DataFrame):
+def train_encoder(prob_config: ProblemConfig, train_x: pd.DataFrame, train_y: pd.DataFrame or pd.Series, val_x: pd.DataFrame, val_y: pd.DataFrame or pd.Series, test_x: pd.DataFrame, test_y: pd.DataFrame or pd.Series):
 
     """
     Performing transform raw data with categorical columns to numerical:
@@ -28,50 +28,63 @@ def train_encoder(prob_config: ProblemConfig, df: pd.DataFrame):
     Returns:
     pandas.DataFrame: Data that had been encoding using one-hot encoder
     """
-    categorical_cols =  list(set(prob_config.raw_categorical_cols) & set(df.columns))
-    if len(categorical_cols) == 0:
-        return df
     
-    # Create a OneHotEncoder object
+    categorical_cols =  list(set(prob_config.raw_categorical_cols) & set(train_x.columns))
+    if len(categorical_cols) == 0:
+        return train_x, train_y, val_x, test_x
+    
+    # define encoder
+    logging.info(f"Encode : {categorical_cols}")
+    # encoder = BinaryEncoder(return_df=False)
     encoder = TargetEncoder(return_df=False)
     
     # Fit the encoder on the training data
-    cat_columns = df[categorical_cols].to_numpy()
-    if df[prob_config.target_col].dtypes == 'object':
+    cat_columns = train_x[categorical_cols].to_numpy()
 
+    if train_y.dtypes == 'object':
         # Encode the fruit column using the factorize method
-        labels, uniques = pd.factorize( df[prob_config.target_col])
+        train_labels, uniques = pd.factorize(train_y)
 
         # Save the mapping between the original string labels and their encoded values
         label_mapping = dict(zip(uniques, range(len(uniques))))
 
         # Save the label mapping to disk using pickle
-        
         with open(prob_config.prob_resource_path + "label_mapping.pickle", 'wb') as f:
             pickle.dump(label_mapping, f)
+       
+        val_labels =  [label_mapping[label] for label in val_y]
+        test_labels =  [label_mapping[label] for label in test_y]
 
-        target_columns = labels
-        df[prob_config.target_col] = labels
+        target_columns = train_labels
+
+        cl = [prob_config.target_col]
+        train_y = pd.DataFrame(train_labels, columns=cl)
+        val_y = pd.DataFrame(val_labels, columns=cl)
+        test_y = pd.DataFrame(test_labels, columns=cl)
 
     else:
-        target_columns = df[prob_config.target_col].to_numpy()
+        target_columns = train_y.to_numpy()
 
-    
+    encode_time = time.time()
     encoded_cols = encoder.fit_transform(cat_columns, target_columns)
     
     # Transform the training data
     encoded_categorical_cols = pd.DataFrame(encoded_cols, columns=categorical_cols)
-    
     # Drop the original categorical column
-    df = df.drop(categorical_cols, axis=1)
-
-    # Concatenate the original DataFrame with the one-hot encoded DataFrame
-    encoded_df = pd.concat([df, encoded_categorical_cols], axis=1)
+    train_x = train_x.drop(categorical_cols, axis=1)
+    # # Concatenate the original DataFrame with the one-hot encoded DataFrame
+    train_x = pd.concat([train_x, encoded_categorical_cols], axis=1)
     
     # Save the fitted encoder to disk
     with open(prob_config.prob_resource_path + "encoder.pkl", 'wb') as f:
         pickle.dump(encoder, f)
-    return encoded_df
+
+    val_x = pd.concat([val_x.drop(categorical_cols, axis=1), pd.DataFrame(encoder.transform(val_x[categorical_cols].to_numpy()), columns=categorical_cols)], axis=1)
+    test_x = pd.concat([test_x.drop(categorical_cols, axis=1), pd.DataFrame(encoder.transform(test_x[categorical_cols].to_numpy()), columns=categorical_cols)], axis=1)
+    
+    logging.info(f"Encode time take {round((time.time() - encode_time) * 1000, 0)} ms")    
+
+    return train_x, train_y, val_x, val_y, test_x, test_y
 
 def transform_new_data(prob_config: ProblemConfig, new_df: pd.DataFrame, encoder = None):
     """
@@ -103,6 +116,7 @@ def transform_new_data(prob_config: ProblemConfig, new_df: pd.DataFrame, encoder
     
 def handle_missing_values_np(data, config):
     data_np = data.to_numpy()
+    
     if config['missing_values']['method'] == 'drop':
         data_np = data_np[~np.isnan(data_np).any(axis=1)]
     elif config['missing_values']['method'] == 'fill':
@@ -124,7 +138,7 @@ def wrong_data_type(data):
     data_np[np.isnan(data_np)] = 0
     return pd.DataFrame(data_np, columns=data.columns)
 
-def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, mode='train', flag = "new", deploy_scaler = None):
+def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, label: pd.Series = None, mode='train', flag = "new", deploy_scaler = None):
         
         """
         Performing preprocessing data:
@@ -167,10 +181,10 @@ def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, mode='train'
                 elif scaler_name == 'robust':
                     scaler = RobustScaler()
                     
-            old_label = data[[prob_config.target_col]]
-            old_features = data.drop([prob_config.target_col], axis=1)
-            scale_features = pd.DataFrame(scaler.fit_transform(old_features), columns=old_features.columns)
-            data = pd.concat([scale_features, old_label], axis=1)
+            old_label = label
+            old_features = data
+            data = pd.DataFrame(scaler.fit_transform(old_features), columns=old_features.columns)
+            
             # Save the scaler to a file for later use in deployment
             with open(prob_config.prob_resource_path + f"{scaler_name}_scaler.pkl", 'wb') as f:
                 pickle.dump(scaler, f)
@@ -182,10 +196,9 @@ def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, mode='train'
             with open(prob_config.prob_resource_path + f"{scaler_name}_scaler.pkl", 'rb') as f:
                 scaler = pickle.load(f)
                     
-            old_label = data[[prob_config.target_col]]
-            old_features = data.drop([prob_config.target_col], axis=1)
-            scale_features = pd.DataFrame(scaler.transform(old_features), columns=old_features.columns)
-            data = pd.concat([scale_features, old_label], axis=1)
+            old_label = label
+            old_features = data
+            data = pd.DataFrame(scaler.transform(old_features), columns=old_features.columns)
 
         elif mode == 'deploy':
             data = pd.DataFrame(deploy_scaler.transform(data), columns=data.columns)
@@ -196,8 +209,6 @@ def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, mode='train'
         convert_type = time.time()
         # Convert the dtype of the `data` DataFrame to `float32`.
         data = data.astype('float32')
-        if prob_config.target_col in data.columns:
-            data[[prob_config.target_col]] = data[[prob_config.target_col]].astype('int8')
         logging.info(f"convert_type data take {round((time.time() - convert_type) * 1000, 0)} ms")
         
         # Handle the wrong datatype in each column
@@ -210,7 +221,11 @@ def preprocess_data(prob_config: ProblemConfig, data: pd.DataFrame, mode='train'
             data.fillna(0, inplace=True)
         logging.info(f"wrong_data_type data take {round((time.time() - wrong_data_type_time) * 1000, 0)} ms")
 
-        return data 
+        if label is not None:
+            label = label.astype('int8')
+            return data, label
+        else:
+            return data
 
 def feature_selection(data_x: pd.DataFrame, data_y: pd.DataFrame, captured_x: pd.DataFrame):
 

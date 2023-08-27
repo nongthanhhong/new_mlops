@@ -133,7 +133,7 @@ def test_load(url, root_path, num_requests):
 import argparse
 if __name__ == "__main__":
   
-  #python src/load_test.py --num-requests 12 --port 8000
+  #python src/load_test.py --num-requests 90 --port 8000
 
   parser = argparse.ArgumentParser()
   parser.add_argument("--num-requests", type=int, default=10)

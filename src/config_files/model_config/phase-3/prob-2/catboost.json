@@ -7,6 +7,7 @@
         "n_estimators" : 5000,
         "depth": 10,
         "learning_rate" : 0.02,
+        "auto_class_weights": "Balanced",
         "subsample" : 0.4,
         "l2_leaf_reg": 1,
         "eval_metric":"Accuracy",

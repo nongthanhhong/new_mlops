@@ -74,14 +74,8 @@ def create_prob_config(phase_id: str, prob_id: str) -> ProblemConfig:
     
     prob_config.processed_data_path.mkdir(parents=True, exist_ok=True)
     
-    prob_config.processed_x_path = prob_config.processed_data_path / "processed_data_x.parquet"
-    prob_config.processed_y_path = prob_config.processed_data_path / "processed_data_y.parquet"
-
-
-
-
-
-
+    prob_config.processed_x_path = prob_config.processed_data_path / "train_x.parquet"
+    prob_config.processed_y_path = prob_config.processed_data_path / "train_y.parquet"
 
     raw_feature_configs = load_feature_configs_dict(prob_config.raw_feature_config_path)
     prob_config.raw_categorical_cols = raw_feature_configs.get("category_columns")

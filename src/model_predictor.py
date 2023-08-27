@@ -65,7 +65,7 @@ class ModelPredictor:
         self.columns_to_keep = feature_names
 
         # set drifted column
-        train_data, train_label = load_data(self.prob_config)
+        train_data, train_label = load_data(self.prob_config.processed_x_path, self.prob_config.processed_y_path)
         _, test_x, _, _ = train_test_split(train_data, train_label,
                                                             test_size=2000, 
                                                             random_state=42,

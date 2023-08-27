@@ -151,7 +151,7 @@ class ModelTrainer:
         
         model.fit(dtrain, eval_set=dval)
         
-        evaluate_model(model = model, test_data=test_x, test_label=test_y)
+        metrics, predictions, probs_prediction = evaluate_model(model = model, test_data=test_x, test_label=test_y)
 
         # define calibrated classifier
         clf = CalibratedClassifierCV(model, cv='prefit', method='isotonic')
