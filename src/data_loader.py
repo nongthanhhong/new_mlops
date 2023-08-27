@@ -36,8 +36,11 @@ def raw_data_process(prob_config: ProblemConfig, flag = "new"):
     
     training_data = pd.read_parquet(prob_config.raw_data_path)
 
-    list_drop_1_prob_1 = ['feature3', 'feature4', 'feature6', 'feature7', 'feature10', 'feature13', 'feature14', 'feature17', 'feature19', 'feature20', 'feature21', 'feature22', 'feature23', 'feature25', 'feature28', 'feature29', 'feature32', 'feature33', 'feature35', 'feature36', 'feature37', 'feature38', 'feature39', 'feature40', 'feature41']
-    list_drop_1_prob_2 = ['feature4', 'feature5', 'feature6', 'feature7', 'feature8', 'feature13', 'feature14', 'feature16', 'feature17', 'feature18', 'feature19', 'feature20', 'feature21', 'feature22', 'feature23', 'feature25', 'feature28', 'feature29', 'feature32', 'feature33', 'feature35', 'feature36', 'feature37', 'feature38', 'feature39', 'feature40', 'feature41']
+    list_drop_1_prob_1 = ['feature3', 'feature4', 'feature5', 'feature6', 'feature13', 'feature14', 'feature19', 'feature20', 'feature21', 'feature22', 'feature23', 'feature24', \
+                                    'feature28', 'feature29', 'feature30', 'feature32', 'feature33', 'feature36', 'feature37', 'feature38', 'feature39', 'feature40', 'feature41']
+    list_drop_1_prob_2 = ['feature3', 'feature4', 'feature5', 'feature6', 'feature13', 'feature14', 'feature19', 'feature20', 'feature21', 'feature22', 'feature23', 'feature24', \
+                                    'feature28', 'feature29', 'feature30', 'feature32', 'feature33', 'feature36', 'feature37', 'feature38', 'feature39', 'feature40', 'feature41']
+
     # list_drop_2 = ['feature3', 'feature20', 'feature10', 'feature22', 'feature29', 'feature13', 'feature25', 'feature36', 'feature4', 'feature21', 'feature7', 'feature28', 'feature37', 'feature41', 'feature19', 'feature17', 'feature38']
     if prob_config.prob_id == "prob-1":
         training_data =  training_data.drop(list_drop_1_prob_1, axis = 1)
@@ -319,9 +322,9 @@ def captured_data_loader(prob_config: ProblemConfig):
     new_data = captured_x[columns_to_keep]
     encoded_data = transform_new_data(prob_config , new_data, encoder=encoder)
 
-    update_processor(prob_config = prob_config, captured_data = encoded_data)
+    # update_processor(prob_config = prob_config, captured_data = encoded_data)
 
-    raw_data_process(prob_config, flag = "update")
+    # raw_data_process(prob_config, flag = "update")
     
     if not os.path.isfile(prob_config.prob_resource_path + f"{scaler_name}_scaler.pkl"):
         raise ValueError(f"Not exist prefitted '{scaler_name}' scaler")
